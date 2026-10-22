@@ -1,0 +1,406 @@
+<title>Aurora Circuit Ticket</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: floating tool row over a full-bleed WebGL stage; a double-bezel ticket panel docks left and the ticket floats in the remaining space.
+   Z scale: stage 0, chrome (bar, panel, overlays) 1, grain 2. Radius rule: shells 28/22px, option tiles 14px, every control is a pill. */
+:root {
+  --bg: #e6e8e7;
+  --bg-glow: #f7f8f7;
+  --surface: #fbfbfa;
+  --surface-2: #ffffff;
+  --shell: rgba(255, 255, 255, .5);
+  --hover: rgba(22, 24, 27, .04);
+  --ink: #16181b;
+  --ink-2: #454a51;
+  --ink-3: #61676f;
+  --line: rgba(22, 24, 27, .09);
+  --line-2: rgba(22, 24, 27, .18);
+  --hi: rgba(255, 255, 255, .95);
+  --shadow: rgba(38, 50, 56, .26);
+  --accent: #0d8a5f;
+  --accent-ink: #ffffff;
+  --accent-soft: rgba(13, 138, 95, .12);
+  --warn: #93600f;
+  --warn-soft: rgba(167, 106, 18, .12);
+  --btn: #16181b;
+  --btn-ink: #f4f5f4;
+  --grain: .05;
+  --font-display: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-body: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --ease: cubic-bezier(.32, .72, 0, 1);
+  --gutter-l: max(16px, env(safe-area-inset-left, 0px));
+  --gutter-r: max(16px, env(safe-area-inset-right, 0px));
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b0c0f; --bg-glow: #1b1d26; --surface: #14161b; --surface-2: #1a1c22; --shell: rgba(255, 255, 255, .035);
+    --hover: rgba(255, 255, 255, .04); --ink: #eceef1; --ink-2: #b0b5bd; --ink-3: #8d939c;
+    --line: rgba(255, 255, 255, .08); --line-2: rgba(255, 255, 255, .17); --hi: rgba(255, 255, 255, .07); --shadow: rgba(0, 0, 0, .6);
+    --accent: #3fcf95; --accent-ink: #03261a; --accent-soft: rgba(63, 207, 149, .14);
+    --warn: #e3ab52; --warn-soft: rgba(227, 171, 82, .14); --btn: #eceef1; --btn-ink: #121317; --grain: .07;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b0c0f; --bg-glow: #1b1d26; --surface: #14161b; --surface-2: #1a1c22; --shell: rgba(255, 255, 255, .035);
+  --hover: rgba(255, 255, 255, .04); --ink: #eceef1; --ink-2: #b0b5bd; --ink-3: #8d939c;
+  --line: rgba(255, 255, 255, .08); --line-2: rgba(255, 255, 255, .17); --hi: rgba(255, 255, 255, .07); --shadow: rgba(0, 0, 0, .6);
+  --accent: #3fcf95; --accent-ink: #03261a; --accent-soft: rgba(63, 207, 149, .14);
+  --warn: #e3ab52; --warn-soft: rgba(227, 171, 82, .14); --btn: #eceef1; --btn-ink: #121317; --grain: .07;
+  color-scheme: dark;
+}
+
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  transition: background-color .8s var(--ease), color .8s var(--ease);
+}
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.soft { color: var(--ink-3); }
+button { font: inherit; color: inherit; }
+kbd {
+  font-family: var(--font-mono); font-size: 10.5px; font-weight: 500;
+  display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 4px;
+  border-radius: 999px; background: var(--line); color: inherit;
+}
+
+.app {
+  position: relative;
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  grid-template-columns: minmax(0, 1fr);
+  padding-left: var(--gutter-l);
+  padding-right: var(--gutter-r);
+  isolation: isolate;
+}
+.app::after {
+  content: ""; position: fixed; inset: 0; z-index: 2; pointer-events: none; opacity: var(--grain);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Stage: full-bleed canvas behind the chrome */
+.stage {
+  position: absolute; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 46% 62% at 64% 54%, var(--bg-glow), transparent 72%);
+  transition: background .8s var(--ease);
+}
+.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; outline: none; }
+.stage canvas.is-grabbing { cursor: grabbing; }
+.stage canvas.is-seam { cursor: crosshair; }
+
+/* Top bar */
+.bar {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  min-height: 68px; padding-block: 12px;
+  pointer-events: none;
+}
+.bar > * { pointer-events: auto; }
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; white-space: nowrap; }
+.mark {
+  width: 22px; height: 22px; border-radius: 50%; flex: none;
+  background: conic-gradient(from 200deg, #f2c7ea, #bfe3ff, #c9f7df, #fff0bf, #f2c7ea);
+  box-shadow: inset 0 0 0 5px var(--bg), inset 0 0 0 6px var(--line-2);
+}
+.brand-name { font-weight: 650; letter-spacing: -.01em; font-size: 15px; }
+.chip {
+  font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase;
+  padding: 4px 10px; border-radius: 999px; background: var(--shell); box-shadow: 0 0 0 1px var(--line);
+  color: var(--ink-2);
+}
+.bar, .tools { min-width: 0; }
+.tools { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 2px; }
+.tools::-webkit-scrollbar { display: none; }
+.tool {
+  display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
+  height: 34px; padding: 0 8px 0 14px; border: 0; border-radius: 999px; cursor: pointer;
+  font-size: 13px; font-weight: 500;
+  background: var(--shell); box-shadow: 0 0 0 1px var(--line), inset 0 1px 0 var(--hi);
+  transition: background-color .5s var(--ease), color .5s var(--ease), transform .3s var(--ease);
+}
+.tool:hover { background: var(--surface); }
+.tool:active { transform: scale(.97); }
+.tool[aria-pressed="true"] { background: var(--btn); color: var(--btn-ink); box-shadow: none; }
+.tool[aria-pressed="true"] kbd { background: rgba(127, 127, 127, .28); }
+.tool:focus-visible, .cta:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Main row: panel left, ticket space right */
+.main {
+  position: relative; z-index: 1; min-height: 0;
+  display: grid; grid-template-columns: minmax(330px, 384px) 1fr; align-items: center;
+  padding-block: 8px 28px;
+  pointer-events: none;
+}
+
+/* Double-bezel panel */
+.panel-shell {
+  pointer-events: auto;
+  max-height: 100%; min-height: 0; display: flex;
+  padding: 6px; border-radius: 28px;
+  background: var(--shell);
+  box-shadow: 0 0 0 1px var(--line), 0 40px 90px -40px var(--shadow);
+  animation: rise 1.1s var(--ease) both;
+}
+.panel {
+  flex: 1; min-width: 0; overflow-y: auto; scrollbar-width: thin;
+  display: grid; gap: 18px; align-content: start;
+  padding: 20px 20px 18px;
+  scrollbar-width: none;
+  border-radius: 22px;
+  background: var(--surface);
+  box-shadow: inset 0 1px 0 var(--hi), 0 0 0 1px var(--line);
+  transition: background-color .8s var(--ease);
+}
+.panel-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.status {
+  display: inline-flex; align-items: center; gap: 8px; height: 26px; padding: 0 11px 0 9px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; background: var(--warn-soft); color: var(--warn);
+  transition: background-color .6s var(--ease), color .6s var(--ease);
+}
+.status-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.status[data-state="awaiting"] .status-dot { animation: pulse 1.8s var(--ease) infinite; }
+.status[data-state="verified"] { background: var(--accent-soft); color: var(--accent); }
+.meta { font-size: 11px; color: var(--ink-3); letter-spacing: .04em; }
+
+.intro { display: grid; gap: 6px; }
+.kicker { margin: 0; font-size: 12px; color: var(--ink-3); }
+.title { margin: 0; font-family: var(--font-display); font-weight: 800; font-size: 30px; line-height: 1.05; letter-spacing: -.035em; text-wrap: balance; }
+.desc { margin: 0; color: var(--ink-2); max-width: 40ch; }
+
+.group { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: 8px; }
+.group-label { display: flex; justify-content: space-between; width: 100%; padding: 0; font-size: 12.5px; font-weight: 600; }
+.group-label .mono { font-size: 11px; font-weight: 400; }
+.sr { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+.options { display: grid; gap: 4px; }
+.option {
+  position: relative; display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center;
+  padding: 9px 12px 9px 9px; border-radius: 14px; cursor: pointer;
+  box-shadow: inset 0 0 0 1px transparent;
+  transition: background-color .5s var(--ease), box-shadow .5s var(--ease), transform .3s var(--ease);
+}
+.option:hover { background: var(--hover); }
+.option:active { transform: scale(.99); }
+.option:has(input:checked) { background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--ink), 0 8px 22px -14px var(--shadow); }
+.option:has(input:focus-visible), .seat:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.swatch { width: 34px; height: 34px; border-radius: 10px; box-shadow: inset 0 0 0 1px rgba(127, 127, 127, .25); }
+.sw-pearl { background: conic-gradient(from 210deg at 40% 40%, #f6d6ef, #cde6ff, #d2fbe6, #fff2c4, #f6d6ef), #eeeeea; }
+.sw-gold { background: radial-gradient(circle at 70% 30%, #ffe4a3 0 18%, transparent 40%), conic-gradient(from 120deg, #6e4a14, #f0c46a, #8a5a17, #ffe09a, #6e4a14); }
+.sw-violet { background: conic-gradient(from 30deg, #ec3fb9, #3a5cff, #23d7f3, #8b3bff, #ec3fb9); }
+.opt-name { display: block; font-weight: 600; font-size: 13.5px; }
+.opt-sub { display: block; font-size: 12px; color: var(--ink-3); }
+.price-tag { font-size: 12.5px; font-weight: 500; }
+
+.seats { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.seat {
+  position: relative; display: grid; gap: 1px; padding: 9px 12px; border-radius: 14px; cursor: pointer;
+  box-shadow: inset 0 0 0 1px var(--line);
+  transition: background-color .5s var(--ease), box-shadow .5s var(--ease);
+}
+.seat:hover { background: var(--hover); }
+.seat:has(input:checked) { background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--ink); }
+.seat strong { font-family: var(--font-mono); font-size: 12px; font-weight: 600; letter-spacing: .02em; }
+.seat span { font-size: 11.5px; color: var(--ink-3); }
+
+.stub-box {
+  display: grid; gap: 12px; padding: 14px; border-radius: 18px;
+  background: var(--hover); box-shadow: inset 0 0 0 1px var(--line);
+}
+.stub-head { display: flex; justify-content: space-between; gap: 12px; font-size: 12.5px; font-weight: 600; }
+.stub-head .mono { font-size: 11px; font-weight: 400; color: var(--ink-2); }
+.meter { display: grid; grid-template-columns: repeat(25, 1fr); gap: 3px; height: 12px; }
+.meter i {
+  border-radius: 3px; background: var(--ink);
+  transition: background-color .25s var(--ease), box-shadow .25s var(--ease), transform .35s var(--ease);
+}
+.meter i.torn { background: transparent; box-shadow: inset 0 0 0 1px var(--line-2); transform: translateY(2px); }
+.stub-box[data-state="verified"] .meter i { box-shadow: inset 0 0 0 1px var(--accent); }
+
+.foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.total { display: grid; gap: 0; min-width: 0; }
+.total .soft { font-size: 11.5px; }
+.total strong { font-size: 20px; font-weight: 600; letter-spacing: -.02em; }
+.total .mono.soft { font-size: 10.5px; letter-spacing: .04em; }
+.cta {
+  display: inline-flex; align-items: center; gap: 14px; border: 0; cursor: pointer; white-space: nowrap;
+  padding: 7px 7px 7px 20px; border-radius: 999px;
+  background: var(--btn); color: var(--btn-ink);
+  box-shadow: 0 12px 28px -14px var(--shadow);
+  transition: background-color .6s var(--ease), color .6s var(--ease), transform .35s var(--ease);
+}
+.cta:active { transform: scale(.98); }
+.cta-label { display: grid; text-align: left; line-height: 1.2; }
+.cta-main { font-weight: 600; font-size: 13.5px; }
+.cta-sub { font-family: var(--font-mono); font-size: 10.5px; opacity: .72; }
+.cta-key {
+  display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(127, 127, 127, .22);
+  transition: transform .5s var(--ease);
+}
+.cta-key kbd { background: transparent; }
+.cta:hover .cta-key { transform: translate(2px, -1px) scale(1.05); }
+.cta[data-state="verified"] { background: var(--accent); color: var(--accent-ink); }
+
+/* Stage overlays */
+.overlay { position: absolute; z-index: 1; pointer-events: none; }
+.face-chip {
+  top: 80px; right: var(--gutter-r);
+  font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase;
+  padding: 6px 12px; border-radius: 999px; background: var(--shell); box-shadow: 0 0 0 1px var(--line); color: var(--ink-2);
+}
+.hint {
+  margin: 0; bottom: 26px; left: 420px; right: 0; text-align: center;
+  font-size: 12.5px; color: var(--ink-3); text-wrap: balance; padding-inline: 16px;
+  transition: opacity .8s var(--ease);
+}
+.hint.is-faded { opacity: .45; }
+.hud {
+  top: 120px; right: var(--gutter-r); width: 248px;
+  display: grid; gap: 3px; padding: 12px 14px; border-radius: 16px;
+  font-size: 10.5px; letter-spacing: .03em; color: var(--ink-2);
+  background: var(--surface); box-shadow: 0 0 0 1px var(--line), 0 20px 50px -30px var(--shadow);
+}
+.hud div { display: flex; justify-content: space-between; gap: 12px; }
+.hud b { font-weight: 500; color: var(--ink); }
+.loading {
+  inset: 0; display: grid; place-items: center; padding-left: 384px;
+  font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3);
+  animation: pulse 1.4s var(--ease) infinite;
+}
+
+@keyframes rise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+
+@media (max-width: 899px) {
+  body { overflow: auto; }
+  .app { height: auto; min-height: 100%; grid-template-rows: auto auto auto; }
+  .bar { flex-direction: column; align-items: stretch; gap: 10px; }
+  .stage {
+    position: relative; inset: auto; height: 66dvh; min-height: 460px;
+    margin-left: calc(-1 * var(--gutter-l)); margin-right: calc(-1 * var(--gutter-r));
+    background: radial-gradient(ellipse 70% 60% at 50% 50%, var(--bg-glow), transparent 75%);
+  }
+  .main { display: block; padding-block: 0 24px; }
+  .panel-shell { max-height: none; }
+  .face-chip { top: 12px; }
+  .hud { top: 52px; width: 220px; }
+  .hint { left: 0; bottom: 14px; }
+  .loading { padding-left: 0; }
+}
+@media (max-width: 420px) {
+  .seats { grid-template-columns: 1fr; }
+  .chip { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+</style>
+
+<div class="app">
+  <header class="bar">
+    <div class="brand">
+      <span class="mark" aria-hidden="true"></span>
+      <span class="brand-name">Atelier Orbita</span>
+      <span class="chip mono">350gsm Verlet foil pass</span>
+    </div>
+    <nav class="tools" aria-label="Ticket controls">
+      <button class="tool" id="btn-flip" type="button" aria-pressed="false">Flip pass <kbd>F</kbd></button>
+      <button class="tool" id="btn-xray" type="button" aria-pressed="false">Physics X-ray <kbd>X</kbd></button>
+      <button class="tool" id="btn-fresh" type="button">Fresh pass <kbd>R</kbd></button>
+      <button class="tool" id="btn-sound" type="button" aria-pressed="true"><span id="sound-label">Sound on</span> <kbd>M</kbd></button>
+      <button class="tool" id="btn-hall" type="button" aria-pressed="false">Concert hall <kbd>D</kbd></button>
+    </nav>
+  </header>
+
+  <section class="stage" id="stage" aria-label="Interactive ticket. Drag to bend, pull the stub to tear it.">
+    <canvas id="gl" tabindex="-1"></canvas>
+    <div class="overlay face-chip mono" id="face-chip">Front face, holographic foil</div>
+    <div class="overlay hud mono" id="hud" hidden></div>
+    <p class="overlay hint" id="hint">Drag to bend. Pull the stub down to tear it, or slice across the perforation.</p>
+    <div class="overlay loading mono" id="loading">Printing pass</div>
+  </section>
+
+  <main class="main">
+    <aside class="panel-shell" aria-label="Ticket details">
+      <div class="panel">
+        <div class="panel-head">
+          <span class="status" id="status" data-state="awaiting"><span class="status-dot" aria-hidden="true"></span><span id="status-text">Awaiting tear</span></span>
+          <span class="meta mono">ALA, DEC 12, 21:00</span>
+        </div>
+
+        <div class="intro">
+          <p class="kicker">Audiovisual concert, season IV</p>
+          <h1 class="title">Aurora Circuit</h1>
+          <p class="desc">Orbita Dome, Almaty. A 360° projection hall wrapped in an ambisonic sound ring.</p>
+        </div>
+
+        <fieldset class="group">
+          <legend class="group-label"><span>Foil edition</span><span class="mono soft">Live shader</span></legend>
+          <div class="options" id="editions">
+            <label class="option">
+              <input class="sr" type="radio" name="edition" id="ed-0" value="0" checked>
+              <span class="swatch sw-pearl" aria-hidden="true"></span>
+              <span><span class="opt-name">Pearl Holo</span><span class="opt-sub">Pearl stock, rainbow chrome</span></span>
+              <span class="price-tag mono">₸48,500</span>
+            </label>
+            <label class="option">
+              <input class="sr" type="radio" name="edition" id="ed-1" value="1">
+              <span class="swatch sw-gold" aria-hidden="true"></span>
+              <span><span class="opt-name">Founders Gold</span><span class="opt-sub">Obsidian stock, gold leaf</span></span>
+              <span class="price-tag mono">₸112,000</span>
+            </label>
+            <label class="option">
+              <input class="sr" type="radio" name="edition" id="ed-2" value="2">
+              <span class="swatch sw-violet" aria-hidden="true"></span>
+              <span><span class="opt-name">Ultraviolet Prism</span><span class="opt-sub">Cobalt stock, dichroic foil</span></span>
+              <span class="price-tag mono">₸76,000</span>
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset class="group">
+          <legend class="group-label"><span>Seat and acoustic zone</span><span class="mono soft">Gate 01 West</span></legend>
+          <div class="seats" id="seats">
+            <label class="seat"><input class="sr" type="radio" name="seat" id="seat-0" value="0" checked><strong>ROW A, SEAT 04</strong><span>Ambisonic ring north</span></label>
+            <label class="seat"><input class="sr" type="radio" name="seat" id="seat-1" value="1"><strong>ROW C, SEAT 17</strong><span>Ambisonic ring east</span></label>
+            <label class="seat"><input class="sr" type="radio" name="seat" id="seat-2" value="2"><strong>BALCONY, BOX 12</strong><span>Upper projection arc</span></label>
+            <label class="seat"><input class="sr" type="radio" name="seat" id="seat-3" value="3"><strong>FLOOR, GA 09</strong><span>Sub-bass floor</span></label>
+          </div>
+        </fieldset>
+
+        <section class="stub-box" id="stub-box" data-state="awaiting">
+          <div class="stub-head"><span>Perforated stub</span><span class="mono" id="fiber-text" aria-live="polite">25 of 25 fibers intact</span></div>
+          <div class="meter" id="meter" aria-hidden="true"></div>
+          <div class="foot">
+            <div class="total">
+              <span class="soft">Total admission</span>
+              <strong class="mono" id="price">₸48,500</strong>
+              <span class="mono soft" id="serial">AC-01-A04-7Q</span>
+            </div>
+            <button class="cta" id="cta" type="button" data-state="awaiting">
+              <span class="cta-label"><span class="cta-main" id="cta-main">Tear stub</span><span class="cta-sub" id="cta-sub">or slice the seam</span></span>
+              <span class="cta-key" aria-hidden="true"><kbd id="cta-kbd">T</kbd></span>
+            </button>
+          </div>
+        </section>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }</script>
+<script type="module" src="main.js"></script>

@@ -1,0 +1,274 @@
+<title>Aurora Circuit Festival</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Aurora Circuit, an audiovisual music festival in Almaty, December 11-13, 2026. Design concept.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="styles.css">
+
+<canvas class="ticket-layer" id="ticket-layer" aria-hidden="true"></canvas>
+
+<header class="nav">
+  <a class="brand" href="#top"><span class="mark" aria-hidden="true"></span><span>Aurora Circuit</span></a>
+  <nav class="nav-links" aria-label="Sections">
+    <a href="#lineup">Lineup</a>
+    <a href="#experience">Experience</a>
+    <a href="#passes">Passes</a>
+    <a href="#venue">Venue</a>
+    <a href="#faq">FAQ</a>
+  </nav>
+  <div class="nav-actions">
+    <button class="chip-btn" id="sound-btn" type="button" aria-pressed="true">Sound on</button>
+    <button class="chip-btn" id="theme-btn" type="button" aria-pressed="true">Night</button>
+    <a class="btn btn-primary btn-sm" href="#passes">Get passes</a>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero" aria-labelledby="hero-title">
+    <canvas class="aurora" id="aurora" aria-hidden="true"></canvas>
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow">Almaty, December 11-13, 2026</p>
+        <h1 class="wordmark" id="hero-title"><span>Aurora</span><span>Circuit</span></h1>
+        <p class="hero-sub">An audiovisual music festival. Three nights of live sets inside a 360° projection dome.</p>
+        <div class="hero-ctas">
+          <a class="btn btn-primary" href="#passes">Get passes <span class="btn-dot" aria-hidden="true">↘</span></a>
+          <a class="btn btn-ghost" href="#lineup">See lineup</a>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="slot" id="slot-hero" role="img" aria-label="A holographic festival pass. Drag it to bend it, pull the stub to tear it."></div>
+        <p class="slot-hint" id="hero-hint">Drag the pass. Pull the stub to tear it.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section lineup" id="lineup" aria-labelledby="lineup-title">
+    <div class="wrap">
+      <div class="lineup-head">
+        <h2 class="h2 reveal" id="lineup-title">Eighteen live sets over three nights.</h2>
+        <div class="tabs" role="tablist" aria-label="Festival nights">
+          <button role="tab" type="button" id="tab-fri" aria-controls="night-fri" aria-selected="true">Fri <span>Dec 11</span></button>
+          <button role="tab" type="button" id="tab-sat" aria-controls="night-sat" aria-selected="false" tabindex="-1">Sat <span>Dec 12</span></button>
+          <button role="tab" type="button" id="tab-sun" aria-controls="night-sun" aria-selected="false" tabindex="-1">Sun <span>Dec 13</span></button>
+        </div>
+      </div>
+
+      <div class="poster" role="tabpanel" id="night-fri" aria-labelledby="tab-fri" tabindex="0">
+        <ul class="acts">
+          <li class="act act-1"><span class="act-name">Temir Sun</span><span class="act-meta">00:30 Dome</span></li>
+          <li class="act act-2" style="--wd: 92%"><span class="act-name">Velvet Cartography</span><span class="act-meta">23:00 Dome</span></li>
+          <li class="act act-2"><span class="act-name">Aral Echo</span><span class="act-meta">21:40 Ring</span></li>
+          <li class="act act-3"><span class="act-name">Mona Kestrel</span><span class="act-meta">20:30 Ring</span></li>
+          <li class="act act-3"><span class="act-name">Dune Signal</span><span class="act-meta">19:20 Dome</span></li>
+          <li class="act act-3"><span class="act-name">Zhelkoz</span><span class="act-meta">01:30 Late room</span></li>
+        </ul>
+      </div>
+      <div class="poster" role="tabpanel" id="night-sat" aria-labelledby="tab-sat" tabindex="0" hidden>
+        <ul class="acts">
+          <li class="act act-1" style="--wd: 84%"><span class="act-name">Glass Steppe Orchestra</span><span class="act-meta">00:40 Dome</span></li>
+          <li class="act act-2"><span class="act-name">Kasym Ultramarine</span><span class="act-meta">23:10 Dome</span></li>
+          <li class="act act-2"><span class="act-name">Ilse Vaara</span><span class="act-meta">21:50 Ring</span></li>
+          <li class="act act-3"><span class="act-name">Saule Halo</span><span class="act-meta">20:40 Ring</span></li>
+          <li class="act act-3"><span class="act-name">Mirr</span><span class="act-meta">19:30 Dome</span></li>
+          <li class="act act-3"><span class="act-name">Orbitalka</span><span class="act-meta">01:40 Late room</span></li>
+        </ul>
+      </div>
+      <div class="poster" role="tabpanel" id="night-sun" aria-labelledby="tab-sun" tabindex="0" hidden>
+        <ul class="acts">
+          <li class="act act-1" style="--wd: 92%"><span class="act-name">Solstice Operators</span><span class="act-meta">00:20 Dome</span></li>
+          <li class="act act-2"><span class="act-name">Aigerim Lux</span><span class="act-meta">22:50 Dome</span></li>
+          <li class="act act-2"><span class="act-name">Hollow Prism</span><span class="act-meta">21:30 Ring</span></li>
+          <li class="act act-3"><span class="act-name">Tumar Kites</span><span class="act-meta">20:20 Ring</span></li>
+          <li class="act act-3"><span class="act-name">Low Tide Telex</span><span class="act-meta">19:10 Dome</span></li>
+          <li class="act act-3"><span class="act-name">Orik</span><span class="act-meta">01:10 Late room</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="experience" aria-labelledby="exp-title">
+    <div class="wrap">
+      <h2 class="h2 reveal" id="exp-title">Built for a full circle of image and sound.</h2>
+      <div class="bento">
+        <article class="cell cell-dome reveal">
+          <canvas class="cell-canvas" id="dome-canvas" aria-hidden="true"></canvas>
+          <div class="cell-copy">
+            <h3>The dome</h3>
+            <p>A 38-metre projection dome. Every set is made for the full circle, so there is no bad spot on the floor.</p>
+          </div>
+        </article>
+        <article class="cell cell-ring reveal">
+          <canvas class="cell-canvas" id="ring-canvas" aria-hidden="true"></canvas>
+          <div class="cell-copy">
+            <h3>The sound ring</h3>
+            <p>64 speakers circle the floor. Sound travels around you with the picture.</p>
+          </div>
+        </article>
+        <article class="cell cell-late reveal">
+          <p class="late-time">01:00 to 04:00</p>
+          <div class="cell-copy">
+            <h3>Late room</h3>
+            <p>When the dome closes, the small hall keeps going with ambient and slow techno.</p>
+          </div>
+        </article>
+        <article class="cell cell-route reveal">
+          <div class="cell-copy">
+            <h3>Getting there</h3>
+            <p>Free night shuttles run from the city centre to Gate 01 on all three nights.</p>
+          </div>
+          <ol class="route">
+            <li><b>17:00</b><span>First shuttle out</span></li>
+            <li><b>Every 20 min</b><span>Through the night</span></li>
+            <li><b>04:30</b><span>Last shuttle back</span></li>
+          </ol>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section passes" id="passes" aria-labelledby="passes-title">
+    <div class="wrap passes-grid">
+      <div class="desk-shell reveal">
+        <div class="desk">
+          <div class="desk-head">
+            <p class="eyebrow">Passes</p>
+            <h2 class="h2" id="passes-title">Pick a pass. Watch it print.</h2>
+            <p class="lede">Every pass is printed on holographic stock. Tear the stub at the gate to check in.</p>
+          </div>
+
+          <fieldset class="field">
+            <legend>Pass</legend>
+            <div class="tiers">
+              <label class="tier">
+                <input class="sr" type="radio" name="tier" id="tier-0" value="0" checked>
+                <span class="tier-sw sw-pearl" aria-hidden="true"></span>
+                <span><span class="tier-name">Circuit</span><span class="tier-perks">Main floor and every set in the dome</span></span>
+                <span class="tier-price" data-tier="0">₸48,500</span>
+              </label>
+              <label class="tier">
+                <input class="sr" type="radio" name="tier" id="tier-1" value="1">
+                <span class="tier-sw sw-prism" aria-hidden="true"></span>
+                <span><span class="tier-name">Prism</span><span class="tier-perks">Reserved seat in the sound ring, fast lane</span></span>
+                <span class="tier-price" data-tier="1">₸76,000</span>
+              </label>
+              <label class="tier">
+                <input class="sr" type="radio" name="tier" id="tier-2" value="2">
+                <span class="tier-sw sw-founders" aria-hidden="true"></span>
+                <span><span class="tier-name">Founders</span><span class="tier-perks">Balcony box, lounge and artist talks</span></span>
+                <span class="tier-price" data-tier="2">₸112,000</span>
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset class="field">
+            <legend>Nights</legend>
+            <div class="segmented">
+              <label><input class="sr" type="radio" name="access" id="acc-0" value="0" checked><span>All three</span></label>
+              <label><input class="sr" type="radio" name="access" id="acc-1" value="1"><span>Fri 11</span></label>
+              <label><input class="sr" type="radio" name="access" id="acc-2" value="2"><span>Sat 12</span></label>
+              <label><input class="sr" type="radio" name="access" id="acc-3" value="3"><span>Sun 13</span></label>
+            </div>
+          </fieldset>
+
+          <div class="order">
+            <div class="qty">
+              <span class="qty-label" id="qty-label">Passes</span>
+              <div class="stepper" role="group" aria-labelledby="qty-label">
+                <button type="button" id="qty-minus" aria-label="Remove one pass">−</button>
+                <output id="qty" aria-live="polite">1</output>
+                <button type="button" id="qty-plus" aria-label="Add one pass">+</button>
+              </div>
+            </div>
+            <div class="total"><span>Total</span><strong id="total">₸48,500</strong></div>
+          </div>
+
+          <div class="desk-actions">
+            <button class="btn btn-primary" id="print-btn" type="button">Print my pass <span class="btn-dot" aria-hidden="true">↗</span></button>
+            <button class="btn btn-ghost" id="flip-btn" type="button">See the back</button>
+          </div>
+
+          <div class="status" id="status" data-state="preview" aria-live="polite">
+            <p id="status-text">This is a live preview. Print it to watch it come off the press.</p>
+            <button class="link-btn" id="tear-btn" type="button" hidden>Tear the stub</button>
+          </div>
+          <p class="fine">Concept page. No payment is taken and no real passes are issued.</p>
+        </div>
+      </div>
+      <div class="passes-visual">
+        <div class="slot" id="slot-desk" role="img" aria-label="Live preview of the pass you are configuring."></div>
+        <p class="slot-hint">Live preview of your pass</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section venue" id="venue" aria-labelledby="venue-title">
+    <div class="wrap">
+      <h2 class="venue-word reveal" id="venue-title">Orbita Dome</h2>
+      <dl class="facts">
+        <div><dt>Where</dt><dd>Medeu district, Almaty. Gate 01 faces the tram stop.</dd></div>
+        <div><dt>Doors</dt><dd>18:00 each night. The first set starts at 19:00.</dd></div>
+        <div><dt>Last set</dt><dd>03:00 in the dome, 04:00 in the late room.</dd></div>
+        <div><dt>Age</dt><dd>18+ with a photo ID at the gate.</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="section faq" id="faq" aria-labelledby="faq-title">
+    <div class="wrap faq-grid">
+      <div class="faq-side">
+        <h2 class="h2" id="faq-title">Questions</h2>
+        <p>Anything else, ask at the info desk inside Gate 01.</p>
+      </div>
+      <div class="faq-list">
+        <details>
+          <summary>What does each pass include?</summary>
+          <p>Circuit covers the main floor and every set in the dome. Prism adds a reserved seat in the sound ring and a fast lane at the gate. Founders adds a balcony box, the lounge and the afternoon artist talks.</p>
+        </details>
+        <details>
+          <summary>Can I get a refund?</summary>
+          <p>You can refund a pass in full until November 27, 2026. After that you can transfer it to someone else once.</p>
+        </details>
+        <details>
+          <summary>Why do I tear the stub?</summary>
+          <p>The stub is your check-in. Staff tear it at Gate 01 and you keep the main pass. It shows your zone inside the dome.</p>
+        </details>
+        <details>
+          <summary>Is the venue accessible?</summary>
+          <p>The floor and the sound ring are step-free, and there is a quiet room next to Gate 02.</p>
+        </details>
+        <details>
+          <summary>Is there an age limit?</summary>
+          <p>Yes, the festival is 18+. Bring a photo ID.</p>
+        </details>
+        <details>
+          <summary>Is Aurora Circuit a real festival?</summary>
+          <p>No. This page is a design concept. The lineup is fictional, no passes are sold and no payment is taken.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="finale" aria-labelledby="finale-title">
+    <div class="wrap finale-inner">
+      <h2 class="finale-title reveal" id="finale-title">December 11-13.<br>Almaty.</h2>
+      <a class="btn btn-primary btn-lg" href="#passes">Get passes <span class="btn-dot" aria-hidden="true">↗</span></a>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <a class="brand" href="#top"><span class="mark" aria-hidden="true"></span><span>Aurora Circuit</span></a>
+    <nav class="footer-links" aria-label="Footer">
+      <a href="#lineup">Lineup</a>
+      <a href="#passes">Passes</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <p class="fine">Aurora Circuit is a design concept by Atelier Orbita. The festival and its lineup are fictional.</p>
+  </div>
+</footer>
+
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }</script>
+<script type="module" src="site.js"></script>
