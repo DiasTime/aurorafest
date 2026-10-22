@@ -114,32 +114,40 @@ export function initMotion({ scenes } = {}) {
   const rail = qs('#rail');
   const railLinks = qsa('.rail a, .toc-menu a');
   qsa('.chapter').forEach((ch) => {
+    const mark = qs(`.rail a[href="#${ch.id}"]`);
     ScrollTrigger.create({
       trigger: ch, start: 'top 55%', end: 'bottom 55%',
       onToggle: (self) => {
         if (!self.isActive) return;
         railLinks.forEach((a) => a.classList.toggle('is-active', a.getAttribute('href') === `#${ch.id}`));
       },
+      // reading progress: finished chapters stay underlined, the current one grows
+      onUpdate: (self) => mark?.style.setProperty('--p', self.progress.toFixed(3)),
+      onRefresh: (self) => mark?.style.setProperty('--p', self.progress.toFixed(3)),
     });
   });
   ScrollTrigger.create({ trigger: '.about', start: 'top 55%', onLeaveBack: () => railLinks.forEach((a) => a.classList.remove('is-active')) });
   const toneCheck = () => {
     if (!rail) return;
     const hit = document.elementsFromPoint(60, innerHeight - 80).find((e) => !e.closest('.rail, .nav') && e !== document.body && e !== document.documentElement);
-    rail.dataset.tone = hit && hit.closest('.opener') ? 'light' : 'ink';
+    // light over the chapter pictures, and over the cover once it has mostly burned into night sky
+    const art = hit && hit.closest('.opener, .cover');
+    rail.dataset.tone = art && (art.classList.contains('opener') || (state.get(art) ?? 0) > 0.5) ? 'light' : 'ink';
   };
   ScrollTrigger.create({ start: 0, end: 'max', onUpdate: toneCheck });
+  ScrollTrigger.addEventListener('refresh', toneCheck);
   toneCheck();
 
   // ---- cover: load sequence, ambient orbits, burn-away on scroll ---------------------------------------
   mm.add(MOTION, () => {
     const chars = qsa('.wm-line').flatMap((l) => splitChars(l));
-    const tl = gsap.timeline({ defaults: { ease: 'expo.out' } });
+    // hold the entrance until the display face has arrived, so the wordmark never swaps fonts mid-flight
+    const tl = gsap.timeline({ defaults: { ease: 'expo.out' }, paused: true });
+    Promise.race([document.fonts?.ready ?? Promise.resolve(), new Promise((r) => setTimeout(r, 1200))]).then(() => tl.play());
     tl.from('.hero-eyebrow', { y: 24, opacity: 0, duration: 1 }, 0.15)
       .from(chars, { yPercent: 118, rotate: 7, duration: 1.35, stagger: 0.035 }, 0.2)
       .from('.headliners', { y: 28, opacity: 0, duration: 1 }, 0.75)
       .from('.hero-ctas > *', { y: 28, opacity: 0, duration: 1, stagger: 0.08 }, 0.85)
-      .from('.figure:not([hidden])', { opacity: 0, y: 80, duration: 1.8, stagger: 0.15 }, 0.3)
       .from('.hero-visual .orbits i', { scale: 0.55, opacity: 0, duration: 1.8, stagger: 0.12 }, 0.4)
       .from('.sticker', { scale: 0, rotation: -50, duration: 1.2, stagger: 0.12, ease: 'back.out(1.9)' }, 0.95)
       .from('.badge', { scale: 0.3, opacity: 0, duration: 1.3, ease: 'back.out(1.6)' }, 1.15)
@@ -153,7 +161,6 @@ export function initMotion({ scenes } = {}) {
     gsap.to(['.headliners', '.hero-ctas', '.hero-eyebrow', '#hero-hint'], { y: -50, opacity: 0, ease: 'power1.in', scrollTrigger: burn });
     gsap.to('.hero-visual', { y: -120, ease: 'none', scrollTrigger: burn });
     gsap.to('.fig-a', { xPercent: -30, yPercent: -12, rotation: -8, opacity: 0, ease: 'power1.in', scrollTrigger: burn });
-    gsap.to('.fig-b', { xPercent: 30, yPercent: -18, rotation: 8, opacity: 0, ease: 'power1.in', scrollTrigger: burn });
     qsa('.sticker').forEach((s) => gsap.to(s, { y: (+s.dataset.speed || -80) * 2.2, rotation: '+=40', opacity: 0, ease: 'power1.in', scrollTrigger: burn }));
   });
 
@@ -187,7 +194,10 @@ export function initMotion({ scenes } = {}) {
   mm.add(MOTION, () => {
     qsa('.opener').forEach((op) => {
       const st = { trigger: op, start: 'top 80%', end: 'top 5%', scrub: true };
-      gsap.fromTo(qs('.op-title', op), { yPercent: 45, opacity: 0 }, { yPercent: 0, opacity: 1, ease: 'none', scrollTrigger: st });
+      // the title rises out of a slot: clipped from below while it slides up
+      gsap.fromTo(qs('.op-title', op),
+        { yPercent: 38, clipPath: 'inset(0% 0% 100% 0%)' },
+        { yPercent: 0, clipPath: 'inset(0% 0% -10% 0%)', ease: 'none', scrollTrigger: st });
       gsap.fromTo([qs('.op-num', op), qs('.op-kicker', op)], { y: 40, opacity: 0 }, { y: 0, opacity: 1, ease: 'none', scrollTrigger: st });
       gsap.fromTo(qs('.op-sub', op), { y: 60, opacity: 0 }, { y: 0, opacity: 1, ease: 'none', scrollTrigger: { trigger: op, start: 'top 55%', end: 'top -10%', scrub: true } });
     });
@@ -290,6 +300,11 @@ export function initMotion({ scenes } = {}) {
   // ---- finale --------------------------------------------------------------------------------------------
   mm.add(MOTION, () => {
     gsap.from('.fl', { yPercent: 60, opacity: 0, duration: 1.3, stagger: 0.12, ease: 'expo.out', scrollTrigger: { trigger: '.finale', start: 'top 78%', once: true } });
+    // the last traveller leaps in towards the dates as the page ends
+    gsap.fromTo('.fig-finale', { xPercent: 34, yPercent: 14, rotation: 9, opacity: 0 }, {
+      xPercent: 0, yPercent: 0, rotation: 0, opacity: 1, ease: 'none',
+      scrollTrigger: { trigger: '.finale', start: 'top 92%', end: 'top 18%', scrub: true },
+    });
     gsap.fromTo('.finale', { '--shift': 0 }, { '--shift': 1, ease: 'none', scrollTrigger: { trigger: '.finale', start: 'top bottom', end: 'bottom top', scrub: true } });
   });
 

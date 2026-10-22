@@ -1,8 +1,9 @@
 // Chapter scenes: one fixed full-screen WebGL layer behind the page. Each chapter opener is a
 // transparent window onto it. A scene is an image (from img/manifest.json) or, until one exists,
-// a painting drawn here in Canvas 2D. Scroll drives a dissolve: the picture burns away along a
-// noise front, its pixels lift off as glittering particles and a night sky shows through. The
-// dissolve is a pure function of progress, so scrolling back reassembles the picture.
+// a painting drawn here in Canvas 2D. Scroll drives a dissolve: the picture crumbles away along a
+// noise front and a night sky shows through. The picture itself is a pure function of progress,
+// so scrolling back reassembles it; the dust is released where the front passes and lives on its
+// own clock, drifting off on a breeze (or settling back in when the picture reassembles).
 import * as THREE from 'three';
 
 const TW = 1600, TH = 1000;
@@ -19,6 +20,11 @@ float dnoise(vec2 p) { return vnoise(p) * 0.55 + vnoise(p * 2.3 + 7.1) * 0.3 + v
 uniform vec2 uRes;
 uniform float uTexAspect;
 uniform float uFocus;
+uniform vec2 uPointer;
+uniform float uPointerOn;
+uniform float uDpr;
+// noise threshold the front has reached for a dissolve progress (kept in step with front() in JS)
+float front(float d) { return d * 1.1 - 0.05; }
 // xy: texture coordinate, z: how much of the picture is present here (portrait pictures sit on the
 // right at full height over the night sky; landscape pictures fill the screen like background-size: cover)
 vec3 sceneUV(vec2 uv) {
@@ -56,25 +62,45 @@ float starLayer(vec2 uv, float scale, float density) {
   return step(density, h) * tw * smoothstep(0.11, 0.0, length(f - o * 0.6));
 }
 void main() {
-  vec3 su = sceneUV(vUv);
+  // depth parallax: the picture drifts against the pointer more than the sky behind it
+  vec2 par = (uPointer - 0.5) * uPointerOn;
+  vec3 su = sceneUV(vUv - par * vec2(0.014, 0.01));
   vec2 cuv = su.xy;
   vec2 warp = vec2(vnoise(cuv * 3.0 + uTime * 0.05) - 0.5, vnoise(cuv * 3.0 - uTime * 0.04 + 7.0) - 0.5) * 0.006;
   vec3 img = texture2D(uTex, cuv + warp).rgb;
 
-  float neb = vnoise(vUv * vec2(uRes.x / uRes.y, 1.0) * 1.6 + uTime * 0.01);
+  vec2 skyUv = vUv - par * 0.004;
+  float neb = vnoise(skyUv * vec2(uRes.x / uRes.y, 1.0) * 1.6 + uTime * 0.01);
   vec3 sky = mix(vec3(0.012, 0.012, 0.028), uTint * 0.22, smoothstep(0.35, 0.95, neb) * 0.8);
-  sky += vec3(starLayer(vUv, 150.0, 0.982) + starLayer(vUv, 70.0, 0.992) * 1.4);
+  sky += vec3(starLayer(skyUv, 150.0, 0.982) + starLayer(skyUv, 70.0, 0.992) * 1.4);
 
+  // the front, as a distance in css pixels: the same width wherever the noise is steep or flat,
+  // roughened per pixel so the edge crumbles like torn paper instead of cutting cleanly
   float n = dnoise(dissolveSpace(vUv));
-  float D = uDissolve * 1.3 - 0.15;
-  float keep = smoothstep(D, D + 0.035, n) * su.z;
-  float live = step(0.0001, uDissolve) * (1.0 - step(0.9999, uDissolve));
-  float edge = smoothstep(0.055, 0.0, abs(n - D)) * live * su.z;
-  vec3 col = mix(sky, img, keep) + edge * mix(vec3(1.0, 0.88, 0.7), img, 0.3) * 1.5;
+  float fw = max(fwidth(n), 1e-5);
+  float dpx = (n - front(uDissolve)) / fw / uDpr + (hash12(floor(gl_FragCoord.xy)) - 0.5) * 4.0;
+  float keep = smoothstep(-0.8, 0.8, dpx) * su.z;
+  float live = step(0.0001, uDissolve) * (1.0 - step(0.9999, uDissolve)) * su.z;
+  float line = exp(-abs(dpx) * 0.55) * live;
+  float glow = exp(-abs(dpx) * 0.14) * live;
+  float spark = step(0.8, hash12(floor(gl_FragCoord.xy / (2.0 * uDpr)) + floor(uTime * 12.0) * 7.13));
+  // the edge shimmers like the foil on the pass: a thin-film rainbow that slides along the front
+  vec3 irid = 0.5 + 0.5 * cos(6.2831 * (vec3(0.0, 0.33, 0.67) + n * 5.0 + uTime * 0.08));
+  vec3 hot = mix(irid * 1.15, img * 1.5 + 0.05, 0.35);
+  vec3 col = mix(sky, img, keep) + hot * (line * (0.5 + 0.8 * spark) + glow * 0.05);
+
+  // a foil sheen follows the pointer across the picture, like light catching the pass
+  vec2 pd = (vUv - uPointer) * vec2(uRes.x / uRes.y, 1.0);
+  float pr = length(pd);
+  float sheen = exp(-pr * pr * 34.0) * uPointerOn;
+  vec3 rainbow = 0.5 + 0.5 * cos(6.2831 * (vec3(0.0, 0.33, 0.67) + pr * 3.2 - uTime * 0.15 + dot(pd, vec2(1.3, 0.7))));
+  col += sheen * keep * (rainbow * 0.09 + 0.035);
 
   float vig = smoothstep(1.25, 0.35, length((vUv - 0.5) * vec2(1.0, 1.15)));
   col *= 0.72 + 0.28 * vig;
-  col += (hash12(gl_FragCoord.xy + floor(uTime * 12.0) * 17.0) - 0.5) * 0.045;
+  // film grain, added in a perceptual space: in linear light the same amount turns a dark sky into snow
+  vec3 g = sqrt(max(col, 0.0)) + (hash12(gl_FragCoord.xy + floor(uTime * 12.0) * 17.0) - 0.5) * 0.03;
+  col = g * g;
   gl_FragColor = vec4(col, 1.0);
   #include <colorspace_fragment>
 }`;
@@ -83,40 +109,87 @@ const ptsVert = /* glsl */ `
 ${noiseChunk}
 attribute vec2 aHome;
 attribute vec4 aRand;
+// uClock time the front passed this grain: > 0 blown off the picture, < 0 settling back in, 0 at rest
+attribute float aBorn;
 uniform sampler2D uTex;
-uniform float uDissolve;
-uniform float uTime;
-uniform float uDpr;
+uniform float uClock;
 varying vec3 vCol;
 varying float vA;
+varying float vGlint;
+varying float vRot;
+varying float vShape;
 void main() {
-  float n = dnoise(dissolveSpace(aHome));
-  float D = uDissolve * 1.3 - 0.15;
-  float age = D - n;
   vec3 su = sceneUV(aHome);
-  if (age <= 0.0 || uDissolve <= 0.0 || su.z < 0.15) { gl_Position = vec4(2.0, 2.0, 0.0, 1.0); gl_PointSize = 0.0; vA = 0.0; return; }
-  float a = age * 2.2;
-  vec2 dir = normalize(aRand.xy - 0.5 + vec2(0.0, 0.3));
-  vec2 pos = aHome + dir * a * (0.06 + aRand.z * 0.16)
-    + vec2(sin(a * 6.0 + aRand.w * 6.2831) * 0.012, a * a * 0.07);
+  bool back = aBorn < 0.0;
+  float age = uClock - abs(aBorn);
+  float life = back ? 0.55 + 0.35 * aRand.w : 0.9 + 1.0 * aRand.z;
+  if (aBorn == 0.0 || age < 0.0 || age > life || su.z < 0.2) {
+    gl_Position = vec4(2.0, 2.0, 0.0, 1.0); gl_PointSize = 0.0; vA = 0.0; vCol = vec3(0.0); vGlint = 0.0; vRot = 0.0; vShape = 1.0; return;
+  }
+  float u = age / life;
+  // leaving: lifted off and carried up and to the right by a breeze, curling as it goes;
+  // settling: a shorter stretch of the same path, run backwards onto the grain's own pixel
+  float s = back ? (1.0 - u) * 0.45 : u;
+  float aspect = uRes.x / uRes.y;
+  vec2 wind = vec2(0.45 / aspect, 1.0) * (0.06 + 0.12 * aRand.y);
+  vec2 curl = vec2(sin(s * 4.0 + aRand.w * 6.2831) / aspect, cos(s * 3.3 + aRand.x * 6.2831)) * 0.02 * s;
+  vec2 pos = aHome + wind * (s * 0.5 + s * s * 0.9) + curl;
+  // loose flakes are pushed aside by the pointer
+  vec2 away = (pos - uPointer) * vec2(aspect, 1.0);
+  float ar = length(away) + 1e-4;
+  pos += (away / ar) * vec2(1.0 / aspect, 1.0) * smoothstep(0.16, 0.0, ar) * 0.045 * uPointerOn;
+
+  // a flake of holographic foil: it tumbles as it flies and flashes whenever it faces the light,
+  // taking the colour of its pixel shifted towards a foil hue, so pale pictures shed confetti, not snow
+  vGlint = step(0.94, aRand.w);
+  vRot = aRand.z * 6.2831 + age * (aRand.x > 0.5 ? 1.0 : -1.0) * (1.5 + 3.0 * aRand.w);
+  vShape = 1.3 + aRand.y * 1.2;
+  float flash = 0.25 + 0.75 * pow(abs(cos(age * (2.0 + 3.0 * aRand.y) + aRand.z * 6.2831)), 4.0);
   vec3 c = texture2D(uTex, su.xy).rgb;
-  vCol = mix(c, vec3(1.0, 0.93, 0.8), 0.3 + 0.45 * aRand.w);
-  float tw = 0.5 + 0.5 * sin(uTime * (3.0 + aRand.z * 6.0) + aRand.x * 30.0);
-  vA = exp(-a * 1.5) * (0.45 + 0.55 * tw);
+  c = clamp(mix(vec3(dot(c, vec3(0.299, 0.587, 0.114))), c, 1.8), 0.0, 1.0);
+  vec3 foil = 0.55 + 0.45 * cos(6.2831 * (vec3(0.0, 0.33, 0.67) + aRand.x * 0.8 + age * 0.35));
+  vCol = mix(mix(c, foil, 0.65) * (0.55 + 0.9 * flash), vec3(1.0, 0.97, 0.92), 0.45 * vGlint);
+  float fade = back ? smoothstep(0.0, 0.35, u) * (1.0 - smoothstep(0.8, 1.0, u)) : smoothstep(0.0, 0.05, u) * pow(1.0 - u, 1.5);
+  vA = fade * 0.85;
   gl_Position = vec4(pos * 2.0 - 1.0, 0.0, 1.0);
-  gl_PointSize = (1.2 + aRand.y * 2.8) * uDpr * (0.8 + 0.6 * tw);
+  gl_PointSize = (3.0 + aRand.y * 4.5) * uDpr * (back ? 1.0 : 1.0 + 0.4 * u) * (1.0 + vGlint * 0.6);
 }`;
 
 const ptsFrag = /* glsl */ `
 varying vec3 vCol;
 varying float vA;
+varying float vGlint;
+varying float vRot;
+varying float vShape;
 void main() {
   vec2 c = gl_PointCoord - 0.5;
-  float core = smoothstep(0.5, 0.0, length(c));
-  float glint = max(smoothstep(0.07, 0.0, abs(c.x)) * smoothstep(0.5, 0.1, abs(c.y)), smoothstep(0.07, 0.0, abs(c.y)) * smoothstep(0.5, 0.1, abs(c.x)));
-  gl_FragColor = vec4(vCol * (core + glint * 0.6) * vA, 1.0);
+  float cs = cos(vRot), sn = sin(vRot);
+  vec2 q = vec2(c.x * cs - c.y * sn, c.x * sn + c.y * cs);
+  // a small rectangle of foil with softened corners; glints are four-pointed sparkles
+  float flake = smoothstep(0.36, 0.26, max(abs(q.x), abs(q.y) * vShape));
+  float glint = max(smoothstep(0.07, 0.0, abs(c.x)) * smoothstep(0.5, 0.05, abs(c.y)), smoothstep(0.07, 0.0, abs(c.y)) * smoothstep(0.5, 0.05, abs(c.x)));
+  float shape = mix(flake, glint + smoothstep(0.2, 0.0, length(c)), vGlint);
+  gl_FragColor = vec4(vCol * shape * vA, 1.0);
   #include <colorspace_fragment>
 }`;
+
+// The dissolve field on the CPU, matching dnoise() in the shaders, so each grain knows the
+// progress at which the front reaches it.
+const fract = (x) => x - Math.floor(x);
+function hash12(x, y) {
+  let a = fract(x * 0.1031), b = fract(y * 0.1031), c = a;
+  const d = a * (b + 33.33) + b * (c + 33.33) + c * (a + 33.33);
+  a += d; b += d; c += d;
+  return fract((a + b) * c);
+}
+function vnoise(x, y) {
+  const ix = Math.floor(x), iy = Math.floor(y), fx = x - ix, fy = y - iy;
+  const ux = fx * fx * (3 - 2 * fx), uy = fy * fy * (3 - 2 * fy);
+  const a = hash12(ix, iy), b = hash12(ix + 1, iy), c = hash12(ix, iy + 1), d = hash12(ix + 1, iy + 1);
+  return (a + (b - a) * ux) * (1 - uy) + (c + (d - c) * ux) * uy;
+}
+const dnoise = (x, y) => vnoise(x, y) * 0.55 + vnoise(x * 2.3 + 7.1, y * 2.3 + 7.1) * 0.3 + vnoise(x * 5.1 + 3.3, y * 5.1 + 3.3) * 0.15;
+const front = (d) => d * 1.1 - 0.05;
 
 // ---- fallback paintings (original artwork, drawn once per scene) -------------------------------------
 function rng(seed) {
@@ -345,7 +418,8 @@ export function createScenes(canvas) {
   let manifest = {};
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: 'high-performance' });
-  const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+  // the scenes are grainy paintings: a modest pixel ratio keeps them sharp enough and the GPU cool
+  const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
   renderer.setPixelRatio(dpr);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   const scene = new THREE.Scene();
@@ -354,13 +428,19 @@ export function createScenes(canvas) {
   const uniforms = {
     uTex: { value: null }, uDissolve: { value: 0 }, uTime: { value: 0 }, uRes: { value: new THREE.Vector2(1, 1) },
     uTexAspect: { value: TW / TH }, uFocus: { value: 0.6 }, uTint: { value: new THREE.Vector3(1, 0.4, 0.6) }, uDpr: { value: dpr },
+    uPointer: { value: new THREE.Vector2(0.5, 0.5) }, uPointerOn: { value: 0 }, uClock: { value: 1 },
   };
-  const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.ShaderMaterial({ uniforms, vertexShader: quadVert, fragmentShader: quadFrag, depthTest: false, depthWrite: false }));
+  const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.ShaderMaterial({
+    uniforms, vertexShader: quadVert, fragmentShader: quadFrag, depthTest: false, depthWrite: false, extensions: { derivatives: true },
+  }));
   quad.frustumCulled = false;
   scene.add(quad);
 
-  const N = innerWidth < 760 ? 11000 : 26000;
-  const home = new Float32Array(N * 2), rand = new Float32Array(N * 4);
+  // dust grains: a fixed home pixel each, the noise value at which the front reaches it, and the
+  // clock time it last crossed the front
+  const N = innerWidth < 760 ? 3000 : 5000;
+  const home = new Float32Array(N * 2), rand = new Float32Array(N * 4), born = new Float32Array(N);
+  const thr = new Float32Array(N), past = new Uint8Array(N);
   const r = rng(77);
   for (let i = 0; i < N; i++) {
     home[i * 2] = r(); home[i * 2 + 1] = r();
@@ -370,6 +450,8 @@ export function createScenes(canvas) {
   pg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(N * 3), 3));
   pg.setAttribute('aHome', new THREE.BufferAttribute(home, 2));
   pg.setAttribute('aRand', new THREE.BufferAttribute(rand, 4));
+  const bornAttr = new THREE.BufferAttribute(born, 1).setUsage(THREE.DynamicDrawUsage);
+  pg.setAttribute('aBorn', bornAttr);
   const points = new THREE.Points(pg, new THREE.ShaderMaterial({
     uniforms, vertexShader: ptsVert, fragmentShader: ptsFrag,
     transparent: true, depthTest: false, depthWrite: false, blending: THREE.AdditiveBlending,
@@ -415,6 +497,39 @@ export function createScenes(canvas) {
   }
 
   let current = null, active = false, raf = 0, dissolve = 0;
+  const clock0 = performance.now();
+  const clockAt = (now) => 1 + (now - clock0) / 1000; // never 0, which marks a grain at rest
+  let thrAspect = 0, lastFront = NaN, flightUntil = 0;
+  const shownDissolve = () => (reduce ? 0 : dissolve);
+  // put every grain on the right side of the front with nothing in flight (new scene, resize)
+  function settle() {
+    const D = front(shownDissolve());
+    for (let i = 0; i < N; i++) { past[i] = D > thr[i] ? 1 : 0; born[i] = 0; }
+    bornAttr.needsUpdate = true;
+    lastFront = D;
+  }
+  function thresholds() {
+    const aspect = uniforms.uRes.value.x / uniforms.uRes.value.y;
+    if (aspect === thrAspect) return;
+    thrAspect = aspect;
+    for (let i = 0; i < N; i++) thr[i] = dnoise(home[i * 2] * aspect * 2.4, home[i * 2 + 1] * 2.4);
+    settle();
+  }
+  // release dust wherever the front moved since the last frame
+  function emit(t) {
+    const D = front(shownDissolve());
+    if (D === lastFront) return;
+    lastFront = D;
+    let moved = false;
+    for (let i = 0; i < N; i++) {
+      const p = D > thr[i] ? 1 : 0;
+      if (p === past[i]) continue;
+      past[i] = p;
+      born[i] = p ? t : -t;
+      moved = true;
+    }
+    if (moved) { bornAttr.needsUpdate = true; flightUntil = t + 2; }
+  }
   function apply(key) {
     const t = texture(key);
     uniforms.uTex.value = t.tex;
@@ -426,17 +541,52 @@ export function createScenes(canvas) {
     const w = canvas.clientWidth || innerWidth, h = canvas.clientHeight || innerHeight;
     renderer.setSize(w, h, false);
     uniforms.uRes.value.set(w, h);
+    thresholds();
     if (active) draw(performance.now());
   }
   new ResizeObserver(resize).observe(canvas);
   resize();
 
+  // pointer: smoothed position in screen uv (y up) and a presence value that fades when idle
+  const pointer = { x: 0.5, y: 0.5, tx: 0.5, ty: 0.5, on: 0, last: -1e9 };
+  const finePointer = matchMedia('(hover: hover) and (pointer: fine)').matches;
+  if (finePointer && !reduce) {
+    window.addEventListener('pointermove', (e) => {
+      pointer.tx = e.clientX / innerWidth;
+      pointer.ty = 1 - e.clientY / innerHeight;
+      pointer.last = performance.now();
+    }, { passive: true });
+    document.addEventListener('pointerleave', () => { pointer.last = -1e9; });
+  }
+
+  let lastDraw = 0, lastDissolve = -1, lastNow = performance.now();
   const draw = (now) => {
     uniforms.uTime.value = reduce ? 4 : now / 1000;
-    uniforms.uDissolve.value = reduce ? 0 : dissolve;
+    uniforms.uClock.value = clockAt(now);
+    uniforms.uDissolve.value = shownDissolve();
     renderer.render(scene, camera);
   };
-  const loop = (now) => { raf = 0; if (!active) return; draw(now); raf = requestAnimationFrame(loop); };
+  const loop = (now) => {
+    raf = 0;
+    if (!active) return;
+    raf = requestAnimationFrame(loop);
+    const dt = Math.min(0.05, (now - lastNow) / 1000);
+    lastNow = now;
+    const k = 1 - Math.exp(-dt * 7);
+    pointer.x += (pointer.tx - pointer.x) * k;
+    pointer.y += (pointer.ty - pointer.y) * k;
+    const wanted = now - pointer.last < 2200 ? 1 : 0;
+    pointer.on += (wanted - pointer.on) * (1 - Math.exp(-dt * 3));
+    uniforms.uPointer.value.set(pointer.x, pointer.y);
+    uniforms.uPointerOn.value = pointer.on;
+    emit(clockAt(now));
+    // a settled scene only needs half the frames: stars and warp move slowly
+    const busy = dissolve !== lastDissolve || clockAt(now) < flightUntil || Math.abs(pointer.tx - pointer.x) + Math.abs(pointer.ty - pointer.y) > 0.0005 || Math.abs(wanted - pointer.on) > 0.01;
+    if (!busy && now - lastDraw < 32) return;
+    lastDissolve = dissolve;
+    lastDraw = now;
+    draw(now);
+  };
 
   // warm the next textures while the browser is idle
   const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 200));
@@ -444,8 +594,11 @@ export function createScenes(canvas) {
 
   return {
     show(key, d = 0) {
+      const fresh = key !== current || !active;
       if (key !== current) { current = key; apply(key); }
       dissolve = Math.min(1, Math.max(0, d));
+      // arriving on a scene (or back after it was hidden) starts it calm, without a burst of dust
+      if (fresh) settle();
       if (!active) { active = true; canvas.classList.add('is-on'); }
       if (!raf) raf = requestAnimationFrame(loop);
     },

@@ -1,11 +1,11 @@
 {
   "note": "Drop generated images into this folder and list the file names here; empty entries use the drawn fallback art.",
   "cover": "",
-  "figureA": "",
+  "figureA": "figure-a.webp",
   "figureB": "figure-b.webp",
   "fri": "",
   "sat": "",
-  "sun": "",
+  "sun": "scene-sun.webp",
   "dome": "",
   "route": "",
   "passes": ""
