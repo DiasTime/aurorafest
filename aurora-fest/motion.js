@@ -1,10 +1,13 @@
-// GSAP choreography. Every effect is gated on prefers-reduced-motion: no-preference, so a viewer who
-// asks for less motion gets a still, fully visible page. Without GSAP the page also stays static.
+// GSAP choreography with Lenis smooth scrolling. Every effect is gated on
+// prefers-reduced-motion: no-preference, so a viewer who asks for less motion gets a still,
+// fully visible page with native scrolling. Without GSAP the page also stays static.
 const gsap = window.gsap;
 const ScrollTrigger = window.ScrollTrigger;
+const Lenis = window.Lenis;
 
 const qs = (s, r = document) => r.querySelector(s);
 const qsa = (s, r = document) => [...r.querySelectorAll(s)];
+const clamp01 = (x) => Math.min(1, Math.max(0, x));
 
 // Wrap every character of an element in span.ch, keeping nested spans (like outlined letters).
 function splitChars(root) {
@@ -44,23 +47,99 @@ function splitWords(el) {
   });
 }
 
-export function initMotion() {
-  const noop = { onLang() {}, tab() {}, counter(el, from, to, fmt) { el.textContent = fmt(to); } };
-  if (!gsap || !ScrollTrigger) return noop;
-  gsap.registerPlugin(ScrollTrigger);
-  const mm = gsap.matchMedia();
+export function initMotion({ scenes } = {}) {
+  const noop = { onLang() {}, tab() {}, refresh() {}, counter(el, from, to, fmt) { el.textContent = fmt(to); } };
   const MOTION = '(prefers-reduced-motion: no-preference)';
   let motionOK = matchMedia(MOTION).matches;
+  if (!gsap || !ScrollTrigger) {
+    initStaticScenes(scenes);
+    return noop;
+  }
+  gsap.registerPlugin(ScrollTrigger);
+  const mm = gsap.matchMedia();
 
-  // ---- hero: load sequence, ambient orbits, scroll parallax ------------------------------------
+  // ---- smooth scrolling ------------------------------------------------------------------------
+  let lenis = null;
+  if (motionOK && Lenis) {
+    lenis = new Lenis({ lerp: 0.1, smoothWheel: true, wheelMultiplier: 1 });
+    lenis.on('scroll', ScrollTrigger.update);
+    gsap.ticker.add((t) => lenis.raf(t * 1000));
+    gsap.ticker.lagSmoothing(0);
+  }
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('a[href^="#"]');
+    if (!a) return;
+    const id = a.getAttribute('href');
+    const el = id.length > 1 && document.querySelector(id);
+    if (!el) return;
+    e.preventDefault();
+    a.closest('details')?.removeAttribute('open');
+    if (lenis) lenis.scrollTo(el, { offset: -8, duration: 1.6 });
+    else el.scrollIntoView({ behavior: motionOK ? 'smooth' : 'auto' });
+  });
+
+  // ---- chapter scenes: which picture is on, and how much of it has burned away --------------------
+  const sceneSections = qsa('[data-scene]');
+  const visible = new Set();
+  const state = new Map(); // section -> dissolve
+  const pushScene = () => {
+    if (!scenes) return;
+    const sec = [...visible].pop();
+    if (!sec) { scenes.hide(); return; }
+    scenes.show(sec.dataset.scene, state.get(sec) ?? 0);
+  };
+  sceneSections.forEach((sec) => {
+    state.set(sec, 0);
+    ScrollTrigger.create({
+      trigger: sec, start: 'top bottom', end: 'bottom top',
+      onToggle: (self) => { if (self.isActive) visible.add(sec); else visible.delete(sec); pushScene(); },
+    });
+    if (!motionOK) return;
+    if (sec.classList.contains('cover')) {
+      // the cover burns away while its sticky frame holds
+      ScrollTrigger.create({
+        trigger: sec, start: 'top top', end: 'bottom bottom', scrub: true,
+        onUpdate: (self) => { state.set(sec, clamp01((self.progress - 0.12) / 0.72)); pushScene(); },
+      });
+    } else {
+      // an opener assembles from glitter while it rises into view
+      ScrollTrigger.create({
+        trigger: sec, start: 'top bottom', end: 'top top', scrub: true,
+        onUpdate: (self) => { state.set(sec, clamp01(1 - self.progress * 1.15)); pushScene(); },
+      });
+    }
+  });
+
+  // ---- chapter rail: current chapter and a tone that reads on scenes and on paper ------------------
+  const rail = qs('#rail');
+  const railLinks = qsa('.rail a, .toc-menu a');
+  qsa('.chapter').forEach((ch) => {
+    ScrollTrigger.create({
+      trigger: ch, start: 'top 55%', end: 'bottom 55%',
+      onToggle: (self) => {
+        if (!self.isActive) return;
+        railLinks.forEach((a) => a.classList.toggle('is-active', a.getAttribute('href') === `#${ch.id}`));
+      },
+    });
+  });
+  ScrollTrigger.create({ trigger: '.about', start: 'top 55%', onLeaveBack: () => railLinks.forEach((a) => a.classList.remove('is-active')) });
+  const toneCheck = () => {
+    if (!rail) return;
+    const hit = document.elementsFromPoint(60, innerHeight - 80).find((e) => !e.closest('.rail, .nav') && e !== document.body && e !== document.documentElement);
+    rail.dataset.tone = hit && hit.closest('.opener') ? 'light' : 'ink';
+  };
+  ScrollTrigger.create({ start: 0, end: 'max', onUpdate: toneCheck });
+  toneCheck();
+
+  // ---- cover: load sequence, ambient orbits, burn-away on scroll ---------------------------------------
   mm.add(MOTION, () => {
     const chars = qsa('.wm-line').flatMap((l) => splitChars(l));
     const tl = gsap.timeline({ defaults: { ease: 'expo.out' } });
-    tl.from('#holo', { opacity: 0, duration: 1.8, ease: 'power2.out' }, 0)
-      .from('.hero-eyebrow', { y: 24, opacity: 0, duration: 1 }, 0.15)
+    tl.from('.hero-eyebrow', { y: 24, opacity: 0, duration: 1 }, 0.15)
       .from(chars, { yPercent: 118, rotate: 7, duration: 1.35, stagger: 0.035 }, 0.2)
       .from('.headliners', { y: 28, opacity: 0, duration: 1 }, 0.75)
       .from('.hero-ctas > *', { y: 28, opacity: 0, duration: 1, stagger: 0.08 }, 0.85)
+      .from('.figure:not([hidden])', { opacity: 0, y: 80, duration: 1.8, stagger: 0.15 }, 0.3)
       .from('.hero-visual .orbits i', { scale: 0.55, opacity: 0, duration: 1.8, stagger: 0.12 }, 0.4)
       .from('.sticker', { scale: 0, rotation: -50, duration: 1.2, stagger: 0.12, ease: 'back.out(1.9)' }, 0.95)
       .from('.badge', { scale: 0.3, opacity: 0, duration: 1.3, ease: 'back.out(1.6)' }, 1.15)
@@ -69,12 +148,13 @@ export function initMotion() {
     gsap.to('.badge svg', { rotation: 360, duration: 26, repeat: -1, ease: 'none', transformOrigin: '50% 50%' });
     qsa('.orbits i').forEach((el, i) => gsap.to(el, { rotation: i % 2 ? -360 : 360, duration: 80 + i * 26, repeat: -1, ease: 'none' }));
 
-    const scrub = { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true };
-    gsap.to('.wordmark', { yPercent: 22, ease: 'none', scrollTrigger: scrub });
-    gsap.to(['.headliners', '.hero-ctas', '.hero-eyebrow'], { y: -40, opacity: 0.15, ease: 'none', scrollTrigger: scrub });
-    gsap.to('#holo', { scale: 1.12, ease: 'none', scrollTrigger: scrub });
-    gsap.to('.hero-visual', { y: -90, ease: 'none', scrollTrigger: scrub });
-    qsa('.sticker').forEach((s) => gsap.to(s, { y: +s.dataset.speed || -80, rotation: '+=18', ease: 'none', scrollTrigger: scrub }));
+    const burn = { trigger: '.cover', start: 'top top', end: 'bottom bottom', scrub: true };
+    gsap.to('.wordmark', { yPercent: -18, opacity: 0, ease: 'power1.in', scrollTrigger: burn });
+    gsap.to(['.headliners', '.hero-ctas', '.hero-eyebrow', '#hero-hint'], { y: -50, opacity: 0, ease: 'power1.in', scrollTrigger: burn });
+    gsap.to('.hero-visual', { y: -120, ease: 'none', scrollTrigger: burn });
+    gsap.to('.fig-a', { xPercent: -30, yPercent: -12, rotation: -8, opacity: 0, ease: 'power1.in', scrollTrigger: burn });
+    gsap.to('.fig-b', { xPercent: 30, yPercent: -18, rotation: 8, opacity: 0, ease: 'power1.in', scrollTrigger: burn });
+    qsa('.sticker').forEach((s) => gsap.to(s, { y: (+s.dataset.speed || -80) * 2.2, rotation: '+=40', opacity: 0, ease: 'power1.in', scrollTrigger: burn }));
   });
 
   // ---- nav hides on the way down, returns on the way up -----------------------------------------
@@ -96,22 +176,31 @@ export function initMotion() {
     ScrollTrigger.create({
       trigger: '.tape', start: 'top bottom', end: 'bottom top',
       onUpdate: (self) => {
-        const boost = Math.min(5, 1 + Math.abs(self.getVelocity()) / 300);
-        gsap.to(loop, { timeScale: boost, duration: 0.2, overwrite: true });
+        gsap.to(loop, { timeScale: Math.min(5, 1 + Math.abs(self.getVelocity()) / 300), duration: 0.2, overwrite: true });
         settle?.kill();
         settle = gsap.to(loop, { timeScale: 1, duration: 1.4, delay: 0.25 });
       },
     });
   });
 
-  // ---- section titles ----------------------------------------------------------------------------------
+  // ---- chapter openers: numeral, title and serif line rise with the picture --------------------------
   mm.add(MOTION, () => {
-    qsa('.sec-title, .about-title, .desk-head .h2, .faq-side .h2').forEach((el) => {
+    qsa('.opener').forEach((op) => {
+      const st = { trigger: op, start: 'top 80%', end: 'top 5%', scrub: true };
+      gsap.fromTo(qs('.op-title', op), { yPercent: 45, opacity: 0 }, { yPercent: 0, opacity: 1, ease: 'none', scrollTrigger: st });
+      gsap.fromTo([qs('.op-num', op), qs('.op-kicker', op)], { y: 40, opacity: 0 }, { y: 0, opacity: 1, ease: 'none', scrollTrigger: st });
+      gsap.fromTo(qs('.op-sub', op), { y: 60, opacity: 0 }, { y: 0, opacity: 1, ease: 'none', scrollTrigger: { trigger: op, start: 'top 55%', end: 'top -10%', scrub: true } });
+    });
+  });
+
+  // ---- titles on paper ------------------------------------------------------------------------------
+  mm.add(MOTION, () => {
+    qsa('.about-title, .desk-head .h2, .faq-side .h2, .feat-name').forEach((el) => {
       gsap.from(el, { y: 60, opacity: 0, duration: 1.2, ease: 'expo.out', scrollTrigger: { trigger: el, start: 'top 88%', once: true } });
     });
   });
 
-  // ---- about: shimmering pills, word scrub, counters ------------------------------------------------
+  // ---- prologue: shimmering pills, word scrub, counters -----------------------------------------------
   let scrubTween = null;
   const buildScrub = () => {
     scrubTween?.scrollTrigger?.kill();
@@ -119,8 +208,7 @@ export function initMotion() {
     scrubTween = null;
     if (!motionOK) return;
     const el = qs('.scrub-text');
-    const words = splitWords(el);
-    scrubTween = gsap.fromTo(words, { opacity: 0.14 }, {
+    scrubTween = gsap.fromTo(splitWords(el), { opacity: 0.14 }, {
       opacity: 1, stagger: 0.08, ease: 'none',
       scrollTrigger: { trigger: el, start: 'top 82%', end: 'bottom 48%', scrub: true },
     });
@@ -140,37 +228,16 @@ export function initMotion() {
     return () => { scrubTween?.scrollTrigger?.kill(); scrubTween?.kill(); scrubTween = null; };
   });
 
-  // ---- headliners: staged entry, art parallax, and the accordion -------------------------------------------
+  // ---- night chapters: the headliner card grows in, the lineup rows follow -------------------------------
   mm.add(MOTION, () => {
-    gsap.from('.head', { y: 90, opacity: 0, duration: 1.3, stagger: 0.12, ease: 'expo.out', scrollTrigger: { trigger: '.heads', start: 'top 85%', once: true } });
-    qsa('.head-art').forEach((c) => gsap.fromTo(c, { yPercent: -4 }, { yPercent: 4, ease: 'none', scrollTrigger: { trigger: c.parentElement, start: 'top bottom', end: 'bottom top', scrub: true } }));
-    gsap.from('.poster:not([hidden]) .act', { y: 40, opacity: 0, duration: 1, stagger: 0.06, ease: 'expo.out', scrollTrigger: { trigger: '.full-lineup', start: 'top 85%', once: true } });
-  });
-  mm.add({ desk: '(min-width: 900px)', calm: '(prefers-reduced-motion: reduce)' }, (ctx) => {
-    const { desk, calm } = ctx.conditions;
-    const heads = qsa('.head');
-    const infos = heads.map((h) => qs('.head-info', h));
-    if (!desk) {
-      gsap.set([...heads, ...infos], { clearProps: 'flexGrow,opacity,y' });
-      return undefined;
-    }
-    const open = (i) => {
-      heads.forEach((h, k) => h.classList.toggle('is-open', k === i));
-      gsap.to(heads, { flexGrow: (k) => (k === i ? 2.6 : 1), duration: calm ? 0 : 0.95, ease: 'expo.out', overwrite: true });
-      gsap.to(infos, { opacity: (k) => (k === i ? 1 : 0), y: (k) => (k === i ? 0 : 18), duration: calm ? 0 : 0.6, ease: 'power3.out', overwrite: true });
-    };
-    const fns = heads.map((h, i) => {
-      const fn = () => open(i);
-      h.addEventListener('mouseenter', fn);
-      h.addEventListener('focus', fn);
-      h.addEventListener('click', fn);
-      return fn;
+    qsa('.feat-media').forEach((m) => {
+      gsap.fromTo(m, { scale: 0.86, opacity: 0.4 }, { scale: 1, opacity: 1, ease: 'none', scrollTrigger: { trigger: m, start: 'top 98%', end: 'top 45%', scrub: true } });
+      gsap.fromTo(qs('.feat-art', m), { yPercent: -4 }, { yPercent: 4, ease: 'none', scrollTrigger: { trigger: m, start: 'top bottom', end: 'bottom top', scrub: true } });
     });
-    open(Math.max(0, heads.findIndex((h) => h.classList.contains('is-open'))));
-    return () => heads.forEach((h, i) => {
-      h.removeEventListener('mouseenter', fns[i]);
-      h.removeEventListener('focus', fns[i]);
-      h.removeEventListener('click', fns[i]);
+    gsap.set('.acts-grid li', { y: 40, opacity: 0 });
+    ScrollTrigger.batch('.acts-grid li', {
+      start: 'top 92%', once: true,
+      onEnter: (batch) => gsap.to(batch, { y: 0, opacity: 1, duration: 1, stagger: 0.07, ease: 'expo.out' }),
     });
   });
 
@@ -248,15 +315,12 @@ export function initMotion() {
   document.fonts?.ready?.then(() => ScrollTrigger.refresh());
 
   return {
-    // re-split the scrubbed paragraph after the language changes its text
     onLang() {
       buildScrub();
       ScrollTrigger.refresh();
     },
-    tab(panel) {
-      if (!motionOK) return;
-      gsap.fromTo(qsa('.act', panel), { y: 36, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, stagger: 0.05, ease: 'expo.out' });
-    },
+    refresh() { ScrollTrigger.refresh(); },
+    tab() {},
     // count from whatever the viewer currently sees, so quick clicks never jump
     counter(el, from, to, fmt) {
       el.acTween?.kill();
@@ -269,4 +333,16 @@ export function initMotion() {
       });
     },
   };
+}
+
+// Without GSAP: show whichever scene section is on screen, fully assembled.
+function initStaticScenes(scenes) {
+  if (!scenes) return;
+  const on = new Set();
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => { if (e.isIntersecting) on.add(e.target); else on.delete(e.target); });
+    const sec = [...on].pop();
+    if (sec) scenes.show(sec.dataset.scene, 0); else scenes.hide();
+  });
+  qsa('[data-scene]').forEach((s) => io.observe(s));
 }

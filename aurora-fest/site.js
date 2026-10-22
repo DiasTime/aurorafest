@@ -1,6 +1,6 @@
 import { createTicketStage } from './stage.js';
 import { priceOf } from './art.js';
-import { startHolo } from './holo.js';
+import { createScenes } from './scenes.js';
 import { setLang, storedLang, d } from './i18n.js';
 import { initMotion } from './motion.js';
 
@@ -55,7 +55,8 @@ stage = createTicketStage({
   onFibers: onFibres,
 });
 
-const motion = initMotion();
+const scenes = createScenes($('#scene-layer'));
+const motion = initMotion({ scenes });
 let shownTotal = priceOf(0, 0);
 function refreshDesk() {
   $$('.tier-price').forEach((el) => { el.textContent = fmt(priceOf(+el.dataset.tier, desk.access)); });
@@ -107,9 +108,8 @@ langBtns.forEach((b) => b.addEventListener('click', () => applyLang(b.dataset.la
 
 // ---- theme ---------------------------------------------------------------------------------------
 const root = document.documentElement;
-const lightMQ = matchMedia('(prefers-color-scheme: light)');
-const isNight = () => (root.dataset.theme ? root.dataset.theme === 'dark' : !lightMQ.matches);
-const holo = startHolo($('#holo'));
+const darkMQ = matchMedia('(prefers-color-scheme: dark)');
+const isNight = () => (root.dataset.theme ? root.dataset.theme === 'dark' : darkMQ.matches);
 const palette = {};
 function readPalette() {
   const cs = getComputedStyle(root);
@@ -119,12 +119,12 @@ function syncTheme() {
   const night = isNight();
   ui.theme.setAttribute('aria-pressed', String(night));
   stage.setDark(night);
-  holo.setDay(!night);
+  scenes.setDay(!night);
   readPalette();
   for (const l of loops) l.redraw();
 }
 ui.theme.addEventListener('click', () => { root.dataset.theme = isNight() ? 'light' : 'dark'; syncTheme(); });
-lightMQ.addEventListener('change', syncTheme);
+darkMQ.addEventListener('change', syncTheme);
 new MutationObserver(syncTheme).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
 
 // ---- stickers you can peel and move ------------------------------------------------------------
@@ -468,4 +468,18 @@ const mapLoop = canvasLoop($('#map-canvas'), (ctx, w, h, t) => {
 // ---- boot --------------------------------------------------------------------------------------------
 syncTheme();
 applyLang(storedLang());
+
+// Generated artwork: img/manifest.json lists the files that exist; anything missing keeps the drawn art.
+fetch('img/manifest.json')
+  .then((r) => (r.ok ? r.json() : {}))
+  .catch(() => ({}))
+  .then((m) => {
+    scenes.setManifest(m);
+    for (const [sel, key] of [['.fig-a', 'figureA'], ['.fig-b', 'figureB']]) {
+      const el = $(sel);
+      if (!el || !m[key]) continue;
+      el.onload = () => { el.hidden = false; motion.refresh(); };
+      el.src = `img/${m[key]}`;
+    }
+  });
 document.fonts?.ready?.then(() => { for (const l of loops) l.redraw(); });
