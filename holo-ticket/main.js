@@ -384,8 +384,14 @@ window.addEventListener('pointermove', (e) => {
   }
 });
 
+// Motion sounds (crinkle, air, fibre stress) only play while the pass is being handled and shortly
+// after; the idle sway never makes noise.
+let engagedUntil = 0;
+const engage = (ms) => { engagedUntil = Math.max(engagedUntil, performance.now() + ms); };
+
 function endDrag() {
   if (!drag) return;
+  engage(1200);
   if (drag.mode === 'grab' || drag.mode === 'tear') {
     sim.release();
     sim.hold = null;
@@ -406,6 +412,7 @@ document.addEventListener('pointerleave', () => state.tiltTarget.set(0, 0));
 // ---- actions --------------------------------------------------------------------------------
 function flip() {
   state.yawTarget += Math.PI;
+  engage(1600);
   state.releaseRamp = 1;
   ui.flip.setAttribute('aria-pressed', String(Math.abs(Math.round(state.yawTarget / Math.PI)) % 2 === 1));
   audio.flap(0.9);
@@ -421,6 +428,7 @@ function autoTear() {
   sim.hold = { quat: sim.clusters[0].rot.clone(), c: sim.clusters[0].c.clone() };
   const dir = new THREE.Vector3(left ? -0.1 : 0.1, -0.52, 0.42).applyQuaternion(sim.clusters[0].rot);
   state.tear = { t: 0, p0, dir, left, forced: 0, after: 0 };
+  engage(2600);
   markInteracted();
 }
 
@@ -461,6 +469,7 @@ function freshPass() {
   motion[0].ok = motion[1].ok = false;
   breakTimes.length = 0;
   setPhase('intact');
+  engage(2000);
   audio.issue();
 }
 
@@ -502,7 +511,7 @@ new MutationObserver(syncTheme).observe(root, { attributes: true, attributeFilte
 syncTheme();
 state.dark = state.darkTarget;
 
-const kick = (v) => { if (!reduceMotion) state.yawVel += v * (Math.random() < 0.5 ? -1 : 1); };
+const kick = (v) => { engage(900); if (!reduceMotion) state.yawVel += v * (Math.random() < 0.5 ? -1 : 1); };
 document.querySelectorAll('input[name="edition"]').forEach((inp) => inp.addEventListener('change', () => {
   state.edition = +inp.value;
   refreshArt();
@@ -657,11 +666,13 @@ function frame(now) {
   uniforms.uDark.value = state.dark;
   uniforms.uTime.value = t;
 
-  audio.crinkle(Math.max(0, sim.deformationSpeed(SUB) - 0.04) * 0.9, dt);
+  const engaged = !!drag || !!state.tear || (sim.stubDetached && !sim.stubFrozen) || now < engagedUntil;
+  const speed = motionSpeed(dt);
+  audio.crinkle(engaged ? Math.max(0, sim.deformationSpeed(SUB) - 0.04) * 0.9 : 0, dt);
   while (breakTimes.length && now - breakTimes[0] > 150) breakTimes.shift();
   audio.tearRate(breakTimes.length / 0.15, lastBreakPan);
-  audio.air(motionSpeed(dt));
-  if (!sim.stubDetached && sim.maxStrain > 1.2 && t > stressAt && Math.random() < (sim.maxStrain - 1.2) * 1.5) {
+  audio.air(engaged ? speed : 0);
+  if (engaged && !sim.stubDetached && sim.maxStrain > 1.2 && t > stressAt && Math.random() < (sim.maxStrain - 1.2) * 1.5) {
     audio.stress(sim.maxStrain - 1.2, (Math.random() - 0.5) * 0.6);
     stressAt = t + 0.03;
   }

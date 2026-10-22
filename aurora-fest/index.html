@@ -1,259 +1,321 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Aurora Circuit Festival</title>
-<meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="Aurora Circuit, an audiovisual music festival in Almaty, December 11-13, 2026. Design concept.">
+<meta name="description" content="Aurora Circuit, аудиовизуальный музыкальный фестиваль в Алматы, 11-13 декабря 2026. Дизайн-концепт.">
+<meta property="og:title" content="Aurora Circuit Festival">
+<meta property="og:description" content="Три ночи живых сетов под проекционным куполом. Голографический пасс, который можно согнуть и порвать.">
+<meta name="theme-color" content="#09090d">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23ff5ca1'/%3E%3Cstop offset='.5' stop-color='%23ff9e4d'/%3E%3Cstop offset='1' stop-color='%234fd6ec'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='16' cy='16' r='15' fill='url(%23g)'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%2309090d'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Sans+Extra+Condensed:wght@600;700;800;900&family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="styles.css">
-
+</head>
+<body>
+<a class="skip" href="#about" data-i18n="skip">Перейти к содержанию</a>
 <canvas class="ticket-layer" id="ticket-layer" aria-hidden="true"></canvas>
 
-<header class="nav">
+<header class="nav" id="nav">
   <a class="brand" href="#top"><span class="mark" aria-hidden="true"></span><span>Aurora Circuit</span></a>
-  <nav class="nav-links" aria-label="Sections">
-    <a href="#lineup">Lineup</a>
-    <a href="#experience">Experience</a>
-    <a href="#passes">Passes</a>
-    <a href="#venue">Venue</a>
-    <a href="#faq">FAQ</a>
+  <nav class="nav-links" aria-label="Разделы" data-i18n-aria="aria.sections">
+    <a href="#lineup" data-i18n="nav.lineup">Лайнап</a>
+    <a href="#festival" data-i18n="nav.festival">Фестиваль</a>
+    <a href="#venue" data-i18n="nav.venue">Как добраться</a>
+    <a href="#passes" data-i18n="nav.passes">Пассы</a>
+    <a href="#faq" data-i18n="nav.faq">Вопросы</a>
   </nav>
   <div class="nav-actions">
-    <button class="chip-btn" id="sound-btn" type="button" aria-pressed="true">Sound on</button>
-    <button class="chip-btn" id="theme-btn" type="button" aria-pressed="true">Night</button>
-    <a class="btn btn-primary btn-sm" href="#passes">Get passes</a>
+    <div class="lang" role="group" aria-label="Язык" data-i18n-aria="aria.lang">
+      <button type="button" data-lang="ru" aria-pressed="true">RU</button>
+      <button type="button" data-lang="en" aria-pressed="false">EN</button>
+    </div>
+    <button class="chip-btn" id="sound-btn" type="button" aria-pressed="true"><span id="sound-label">Звук</span></button>
+    <button class="chip-btn" id="theme-btn" type="button" aria-pressed="true" data-i18n="ui.night">Ночь</button>
+    <a class="btn btn-primary btn-sm" href="#passes" data-i18n="cta.buy">Купить пасс</a>
   </div>
 </header>
 
 <main id="top">
   <section class="hero" aria-labelledby="hero-title">
-    <canvas class="aurora" id="aurora" aria-hidden="true"></canvas>
-    <div class="wrap hero-grid">
-      <div class="hero-copy">
-        <p class="eyebrow">Almaty, December 11-13, 2026</p>
-        <h1 class="wordmark" id="hero-title"><span>Aurora</span><span>Circuit</span></h1>
-        <p class="hero-sub">An audiovisual music festival. Three nights of live sets inside a 360° projection dome.</p>
-        <div class="hero-ctas">
-          <a class="btn btn-primary" href="#passes">Get passes <span class="btn-dot" aria-hidden="true">↘</span></a>
-          <a class="btn btn-ghost" href="#lineup">See lineup</a>
-        </div>
+    <canvas class="holo" id="holo" aria-hidden="true"></canvas>
+    <div class="wrap hero-inner">
+      <p class="eyebrow hero-eyebrow" data-i18n="hero.eyebrow">Алматы, 11-13 декабря 2026</p>
+      <h1 class="wordmark" id="hero-title" aria-label="Aurora Circuit">
+        <span class="wm-line" aria-hidden="true">AURO<span class="o">RA</span></span>
+        <span class="wm-line" aria-hidden="true">CIR<span class="o">CU</span>IT</span>
+      </h1>
+      <p class="headliners">Temir Sun <i>/</i> Glass Steppe Orchestra <i>/</i> Solstice Operators</p>
+      <div class="hero-ctas">
+        <a class="btn btn-primary magnetic" href="#passes"><span data-i18n="cta.buy">Купить пасс</span><span class="btn-dot" aria-hidden="true">↘</span></a>
+        <a class="btn btn-ghost magnetic" href="#lineup" data-i18n="cta.lineup">Лайнап</a>
       </div>
-      <div class="hero-visual">
-        <div class="slot" id="slot-hero" role="img" aria-label="A holographic festival pass. Drag it to bend it, pull the stub to tear it."></div>
-        <p class="slot-hint" id="hero-hint">Drag the pass. Pull the stub to tear it.</p>
+    </div>
+
+    <div class="hero-visual">
+      <div class="orbits" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div class="badge" aria-hidden="true">
+        <svg viewBox="0 0 120 120"><defs><path id="badge-path" d="M60,60 m-47,0 a47,47 0 1,1 94,0 a47,47 0 1,1 -94,0"></path></defs><text><textPath href="#badge-path">AURORA CIRCUIT ✦ ALMATY ✦ 11-13.12.2026 ✦</textPath></text></svg>
+        <span>✦</span>
+      </div>
+      <div class="slot" id="slot-hero" role="img" aria-label="Голографический пасс. Потяните, чтобы согнуть, и оторвите корешок." data-i18n-aria="aria.slotHero"></div>
+      <p class="slot-hint" id="hero-hint" data-i18n="hero.hint">Потяните пасс. Оторвите корешок.</p>
+    </div>
+
+    <div class="sticker s-age" data-no-ticket data-speed="-120" style="--rot: -12deg" aria-hidden="true">18+</div>
+    <div class="sticker s-nights" data-no-ticket data-speed="-60" style="--rot: 9deg" aria-hidden="true"><span data-i18n="hero.sticker">3 ночи</span></div>
+    <div class="sticker s-foil" data-no-ticket data-speed="-180" style="--rot: -6deg" aria-hidden="true">AO</div>
+  </section>
+
+  <div class="tape" aria-hidden="true">
+    <div class="tape-track">
+      <span>Temir Sun</span><i>✦</i><span class="o">Glass Steppe Orchestra</span><i>✦</i><span>Solstice Operators</span><i>✦</i><span class="o">11-13.12.2026</span><i>✦</i><span>Orbita Dome</span><i>✦</i><span class="o">Almaty</span><i>✦</i>
+      <span>Temir Sun</span><i>✦</i><span class="o">Glass Steppe Orchestra</span><i>✦</i><span>Solstice Operators</span><i>✦</i><span class="o">11-13.12.2026</span><i>✦</i><span>Orbita Dome</span><i>✦</i><span class="o">Almaty</span><i>✦</i>
+    </div>
+  </div>
+
+  <section class="section about" id="about" aria-labelledby="about-title">
+    <div class="wrap about-grid">
+      <div class="about-copy">
+        <h2 class="h2 about-title" id="about-title"><span data-i18n="about.t1">Три ночи</span> <span class="pill pill-a" aria-hidden="true"></span> <span data-i18n="about.t2">внутри купола.</span> <span class="pill pill-b" aria-hidden="true"></span></h2>
+        <p class="lede scrub-text" data-i18n="about.text">Aurora Circuit собирает музыкантов и художников по свету под одной крышей. Каждый сет сделан для проекционного купола на 360° и звукового кольца из 64 колонок.</p>
+      </div>
+      <ul class="stats">
+        <li class="stat"><b class="stat-num" data-count="3">3</b><span data-i18n="about.s1">ночи живых сетов</span></li>
+        <li class="stat"><b class="stat-num" data-count="18">18</b><span data-i18n="about.s2">лайв-сетов и шоу</span></li>
+        <li class="stat"><b class="stat-num" data-count="64">64</b><span data-i18n="about.s3">колонки в звуковом кольце</span></li>
+        <li class="stat"><b class="stat-num" data-count="360" data-suffix="°">360°</b><span data-i18n="about.s4">проекция без плохих мест</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section heads-section" id="lineup" aria-labelledby="lineup-title">
+    <div class="wrap">
+      <h2 class="h2 sec-title" id="lineup-title" data-i18n="lineup.title">Три ночи, три хедлайнера.</h2>
+      <div class="heads">
+        <article class="head is-open" tabindex="0">
+          <canvas class="head-art" data-cover="sun" aria-hidden="true"></canvas>
+          <div class="head-date"><b>11</b><span>.12</span></div>
+          <div class="head-info">
+            <p class="head-day" data-i18n="day.fri">Пятница</p>
+            <h3 class="head-name">Temir Sun</h3>
+            <p class="head-meta">00:30 <span data-i18n="stage.dome">Купол</span></p>
+          </div>
+        </article>
+        <article class="head" tabindex="0">
+          <canvas class="head-art" data-cover="steppe" aria-hidden="true"></canvas>
+          <div class="head-date"><b>12</b><span>.12</span></div>
+          <div class="head-info">
+            <p class="head-day" data-i18n="day.sat">Суббота</p>
+            <h3 class="head-name">Glass Steppe Orchestra</h3>
+            <p class="head-meta">00:40 <span data-i18n="stage.dome">Купол</span></p>
+          </div>
+        </article>
+        <article class="head" tabindex="0">
+          <canvas class="head-art" data-cover="orbit" aria-hidden="true"></canvas>
+          <div class="head-date"><b>13</b><span>.12</span></div>
+          <div class="head-info">
+            <p class="head-day" data-i18n="day.sun">Воскресенье</p>
+            <h3 class="head-name">Solstice Operators</h3>
+            <p class="head-meta">00:20 <span data-i18n="stage.dome">Купол</span></p>
+          </div>
+        </article>
+      </div>
+
+      <div class="full-lineup">
+        <div class="lineup-head">
+          <h3 class="h3" data-i18n="lineup.full">Весь лайнап</h3>
+          <div class="tabs" role="tablist" aria-label="Ночи фестиваля" data-i18n-aria="aria.tabs">
+            <button role="tab" type="button" id="tab-fri" aria-controls="night-fri" aria-selected="true"><span data-i18n="tab.fri">Пт</span> <span class="tab-date" data-i18n="tabd.fri">11.12</span></button>
+            <button role="tab" type="button" id="tab-sat" aria-controls="night-sat" aria-selected="false" tabindex="-1"><span data-i18n="tab.sat">Сб</span> <span class="tab-date" data-i18n="tabd.sat">12.12</span></button>
+            <button role="tab" type="button" id="tab-sun" aria-controls="night-sun" aria-selected="false" tabindex="-1"><span data-i18n="tab.sun">Вс</span> <span class="tab-date" data-i18n="tabd.sun">13.12</span></button>
+          </div>
+        </div>
+        <div class="poster" role="tabpanel" id="night-fri" aria-labelledby="tab-fri" tabindex="0">
+          <ul class="acts">
+            <li class="act"><span class="act-name">Velvet Cartography</span><span class="act-meta">23:00 <span data-i18n="stage.dome">Купол</span></span></li>
+            <li class="act"><span class="act-name">Aral Echo</span><span class="act-meta">21:40 <span data-i18n="stage.ring">Кольцо</span></span></li>
+            <li class="act"><span class="act-name">Mona Kestrel</span><span class="act-meta">20:30 <span data-i18n="stage.ring">Кольцо</span></span></li>
+            <li class="act"><span class="act-name">Dune Signal</span><span class="act-meta">19:20 <span data-i18n="stage.dome">Купол</span></span></li>
+            <li class="act"><span class="act-name">Zhelkoz</span><span class="act-meta">01:30 <span data-i18n="stage.late">Малый зал</span></span></li>
+          </ul>
+        </div>
+        <div class="poster" role="tabpanel" id="night-sat" aria-labelledby="tab-sat" tabindex="0" hidden>
+          <ul class="acts">
+            <li class="act"><span class="act-name">Kasym Ultramarine</span><span class="act-meta">23:10 <span data-i18n="stage.dome">Купол</span></span></li>
+            <li class="act"><span class="act-name">Ilse Vaara</span><span class="act-meta">21:50 <span data-i18n="stage.ring">Кольцо</span></span></li>
+            <li class="act"><span class="act-name">Saule Halo</span><span class="act-meta">20:40 <span data-i18n="stage.ring">Кольцо</span></span></li>
+            <li class="act"><span class="act-name">Mirr</span><span class="act-meta">19:30 <span data-i18n="stage.dome">Купол</span></span></li>
+            <li class="act"><span class="act-name">Orbitalka</span><span class="act-meta">01:40 <span data-i18n="stage.late">Малый зал</span></span></li>
+          </ul>
+        </div>
+        <div class="poster" role="tabpanel" id="night-sun" aria-labelledby="tab-sun" tabindex="0" hidden>
+          <ul class="acts">
+            <li class="act"><span class="act-name">Aigerim Lux</span><span class="act-meta">22:50 <span data-i18n="stage.dome">Купол</span></span></li>
+            <li class="act"><span class="act-name">Hollow Prism</span><span class="act-meta">21:30 <span data-i18n="stage.ring">Кольцо</span></span></li>
+            <li class="act"><span class="act-name">Tumar Kites</span><span class="act-meta">20:20 <span data-i18n="stage.ring">Кольцо</span></span></li>
+            <li class="act"><span class="act-name">Low Tide Telex</span><span class="act-meta">19:10 <span data-i18n="stage.dome">Купол</span></span></li>
+            <li class="act"><span class="act-name">Orik</span><span class="act-meta">01:10 <span data-i18n="stage.late">Малый зал</span></span></li>
+          </ul>
+        </div>
       </div>
     </div>
   </section>
 
-  <section class="section lineup" id="lineup" aria-labelledby="lineup-title">
+  <section class="section" id="festival" aria-labelledby="exp-title">
     <div class="wrap">
-      <div class="lineup-head">
-        <h2 class="h2 reveal" id="lineup-title">Eighteen live sets over three nights.</h2>
-        <div class="tabs" role="tablist" aria-label="Festival nights">
-          <button role="tab" type="button" id="tab-fri" aria-controls="night-fri" aria-selected="true">Fri <span>Dec 11</span></button>
-          <button role="tab" type="button" id="tab-sat" aria-controls="night-sat" aria-selected="false" tabindex="-1">Sat <span>Dec 12</span></button>
-          <button role="tab" type="button" id="tab-sun" aria-controls="night-sun" aria-selected="false" tabindex="-1">Sun <span>Dec 13</span></button>
-        </div>
-      </div>
-
-      <div class="poster" role="tabpanel" id="night-fri" aria-labelledby="tab-fri" tabindex="0">
-        <ul class="acts">
-          <li class="act act-1"><span class="act-name">Temir Sun</span><span class="act-meta">00:30 Dome</span></li>
-          <li class="act act-2" style="--wd: 92%"><span class="act-name">Velvet Cartography</span><span class="act-meta">23:00 Dome</span></li>
-          <li class="act act-2"><span class="act-name">Aral Echo</span><span class="act-meta">21:40 Ring</span></li>
-          <li class="act act-3"><span class="act-name">Mona Kestrel</span><span class="act-meta">20:30 Ring</span></li>
-          <li class="act act-3"><span class="act-name">Dune Signal</span><span class="act-meta">19:20 Dome</span></li>
-          <li class="act act-3"><span class="act-name">Zhelkoz</span><span class="act-meta">01:30 Late room</span></li>
-        </ul>
-      </div>
-      <div class="poster" role="tabpanel" id="night-sat" aria-labelledby="tab-sat" tabindex="0" hidden>
-        <ul class="acts">
-          <li class="act act-1" style="--wd: 84%"><span class="act-name">Glass Steppe Orchestra</span><span class="act-meta">00:40 Dome</span></li>
-          <li class="act act-2"><span class="act-name">Kasym Ultramarine</span><span class="act-meta">23:10 Dome</span></li>
-          <li class="act act-2"><span class="act-name">Ilse Vaara</span><span class="act-meta">21:50 Ring</span></li>
-          <li class="act act-3"><span class="act-name">Saule Halo</span><span class="act-meta">20:40 Ring</span></li>
-          <li class="act act-3"><span class="act-name">Mirr</span><span class="act-meta">19:30 Dome</span></li>
-          <li class="act act-3"><span class="act-name">Orbitalka</span><span class="act-meta">01:40 Late room</span></li>
-        </ul>
-      </div>
-      <div class="poster" role="tabpanel" id="night-sun" aria-labelledby="tab-sun" tabindex="0" hidden>
-        <ul class="acts">
-          <li class="act act-1" style="--wd: 92%"><span class="act-name">Solstice Operators</span><span class="act-meta">00:20 Dome</span></li>
-          <li class="act act-2"><span class="act-name">Aigerim Lux</span><span class="act-meta">22:50 Dome</span></li>
-          <li class="act act-2"><span class="act-name">Hollow Prism</span><span class="act-meta">21:30 Ring</span></li>
-          <li class="act act-3"><span class="act-name">Tumar Kites</span><span class="act-meta">20:20 Ring</span></li>
-          <li class="act act-3"><span class="act-name">Low Tide Telex</span><span class="act-meta">19:10 Dome</span></li>
-          <li class="act act-3"><span class="act-name">Orik</span><span class="act-meta">01:10 Late room</span></li>
-        </ul>
-      </div>
-    </div>
-  </section>
-
-  <section class="section" id="experience" aria-labelledby="exp-title">
-    <div class="wrap">
-      <h2 class="h2 reveal" id="exp-title">Built for a full circle of image and sound.</h2>
+      <h2 class="h2 sec-title" id="exp-title" data-i18n="exp.title">Звук и свет по кругу.</h2>
       <div class="bento">
-        <article class="cell cell-dome reveal">
+        <article class="cell cell-dome">
           <canvas class="cell-canvas" id="dome-canvas" aria-hidden="true"></canvas>
           <div class="cell-copy">
-            <h3>The dome</h3>
-            <p>A 38-metre projection dome. Every set is made for the full circle, so there is no bad spot on the floor.</p>
+            <h3 data-i18n="exp.dome.t">Купол</h3>
+            <p data-i18n="exp.dome.p">Проекционный купол диаметром 38 метров. Каждый сет сделан на весь круг, поэтому плохих мест на танцполе нет.</p>
           </div>
         </article>
-        <article class="cell cell-ring reveal">
+        <article class="cell cell-ring">
           <canvas class="cell-canvas" id="ring-canvas" aria-hidden="true"></canvas>
           <div class="cell-copy">
-            <h3>The sound ring</h3>
-            <p>64 speakers circle the floor. Sound travels around you with the picture.</p>
+            <h3 data-i18n="exp.ring.t">Звуковое кольцо</h3>
+            <p data-i18n="exp.ring.p">64 колонки вокруг танцпола. Звук движется вокруг вас вместе с картинкой.</p>
           </div>
         </article>
-        <article class="cell cell-late reveal">
-          <p class="late-time">01:00 to 04:00</p>
+        <article class="cell cell-late">
+          <p class="late-time">01:00 - 04:00</p>
           <div class="cell-copy">
-            <h3>Late room</h3>
-            <p>When the dome closes, the small hall keeps going with ambient and slow techno.</p>
+            <h3 data-i18n="exp.late.t">Малый зал</h3>
+            <p data-i18n="exp.late.p">Когда купол закрывается, в малом зале продолжают играть эмбиент и медленное техно.</p>
           </div>
         </article>
-        <article class="cell cell-route reveal">
+        <article class="cell cell-market">
           <div class="cell-copy">
-            <h3>Getting there</h3>
-            <p>Free night shuttles run from the city centre to Gate 01 on all three nights.</p>
+            <h3 data-i18n="exp.market.t">Ночной маркет</h3>
+            <p data-i18n="exp.market.p">Еда и бары от алматинских кухонь. Открыты с 18:00 до 03:00.</p>
           </div>
-          <ol class="route">
-            <li><b>17:00</b><span>First shuttle out</span></li>
-            <li><b>Every 20 min</b><span>Through the night</span></li>
-            <li><b>04:30</b><span>Last shuttle back</span></li>
-          </ol>
+          <ul class="mini-stats">
+            <li><b>12</b><span data-i18n="exp.m1">точек с едой</span></li>
+            <li><b>4</b><span data-i18n="exp.m2">бара</span></li>
+            <li><b>2</b><span data-i18n="exp.m3">чилаут-зоны</span></li>
+          </ul>
         </article>
-      </div>
-    </div>
-  </section>
-
-  <section class="section passes" id="passes" aria-labelledby="passes-title">
-    <div class="wrap passes-grid">
-      <div class="desk-shell reveal">
-        <div class="desk">
-          <div class="desk-head">
-            <p class="eyebrow">Passes</p>
-            <h2 class="h2" id="passes-title">Pick a pass. Watch it print.</h2>
-            <p class="lede">Every pass is printed on holographic stock. Tear the stub at the gate to check in.</p>
-          </div>
-
-          <fieldset class="field">
-            <legend>Pass</legend>
-            <div class="tiers">
-              <label class="tier">
-                <input class="sr" type="radio" name="tier" id="tier-0" value="0" checked>
-                <span class="tier-sw sw-pearl" aria-hidden="true"></span>
-                <span><span class="tier-name">Circuit</span><span class="tier-perks">Main floor and every set in the dome</span></span>
-                <span class="tier-price" data-tier="0">₸48,500</span>
-              </label>
-              <label class="tier">
-                <input class="sr" type="radio" name="tier" id="tier-1" value="1">
-                <span class="tier-sw sw-prism" aria-hidden="true"></span>
-                <span><span class="tier-name">Prism</span><span class="tier-perks">Reserved seat in the sound ring, fast lane</span></span>
-                <span class="tier-price" data-tier="1">₸76,000</span>
-              </label>
-              <label class="tier">
-                <input class="sr" type="radio" name="tier" id="tier-2" value="2">
-                <span class="tier-sw sw-founders" aria-hidden="true"></span>
-                <span><span class="tier-name">Founders</span><span class="tier-perks">Balcony box, lounge and artist talks</span></span>
-                <span class="tier-price" data-tier="2">₸112,000</span>
-              </label>
-            </div>
-          </fieldset>
-
-          <fieldset class="field">
-            <legend>Nights</legend>
-            <div class="segmented">
-              <label><input class="sr" type="radio" name="access" id="acc-0" value="0" checked><span>All three</span></label>
-              <label><input class="sr" type="radio" name="access" id="acc-1" value="1"><span>Fri 11</span></label>
-              <label><input class="sr" type="radio" name="access" id="acc-2" value="2"><span>Sat 12</span></label>
-              <label><input class="sr" type="radio" name="access" id="acc-3" value="3"><span>Sun 13</span></label>
-            </div>
-          </fieldset>
-
-          <div class="order">
-            <div class="qty">
-              <span class="qty-label" id="qty-label">Passes</span>
-              <div class="stepper" role="group" aria-labelledby="qty-label">
-                <button type="button" id="qty-minus" aria-label="Remove one pass">−</button>
-                <output id="qty" aria-live="polite">1</output>
-                <button type="button" id="qty-plus" aria-label="Add one pass">+</button>
-              </div>
-            </div>
-            <div class="total"><span>Total</span><strong id="total">₸48,500</strong></div>
-          </div>
-
-          <div class="desk-actions">
-            <button class="btn btn-primary" id="print-btn" type="button">Print my pass <span class="btn-dot" aria-hidden="true">↗</span></button>
-            <button class="btn btn-ghost" id="flip-btn" type="button">See the back</button>
-          </div>
-
-          <div class="status" id="status" data-state="preview" aria-live="polite">
-            <p id="status-text">This is a live preview. Print it to watch it come off the press.</p>
-            <button class="link-btn" id="tear-btn" type="button" hidden>Tear the stub</button>
-          </div>
-          <p class="fine">Concept page. No payment is taken and no real passes are issued.</p>
-        </div>
-      </div>
-      <div class="passes-visual">
-        <div class="slot" id="slot-desk" role="img" aria-label="Live preview of the pass you are configuring."></div>
-        <p class="slot-hint">Live preview of your pass</p>
       </div>
     </div>
   </section>
 
   <section class="section venue" id="venue" aria-labelledby="venue-title">
     <div class="wrap">
-      <h2 class="venue-word reveal" id="venue-title">Orbita Dome</h2>
+      <h2 class="venue-word" id="venue-title" aria-label="Orbita Dome"><span aria-hidden="true">Orbita Dome</span></h2>
+      <div class="map-wrap">
+        <canvas class="map" id="map-canvas" role="img" aria-label="Схема: ночной шаттл идёт из центра города к Orbita Dome у подножия гор." data-i18n-aria="aria.map"></canvas>
+        <p class="map-legend"><i aria-hidden="true"></i><span data-i18n="venue.route">Ночной шаттл из центра каждые 20 минут</span></p>
+      </div>
       <dl class="facts">
-        <div><dt>Where</dt><dd>Medeu district, Almaty. Gate 01 faces the tram stop.</dd></div>
-        <div><dt>Doors</dt><dd>18:00 each night. The first set starts at 19:00.</dd></div>
-        <div><dt>Last set</dt><dd>03:00 in the dome, 04:00 in the late room.</dd></div>
-        <div><dt>Age</dt><dd>18+ with a photo ID at the gate.</dd></div>
+        <div><dt data-i18n="venue.f1.t">Адрес</dt><dd data-i18n="venue.f1.d">Медеуский район, Алматы. Вход Gate 01 напротив трамвайной остановки.</dd></div>
+        <div><dt data-i18n="venue.f2.t">Двери</dt><dd data-i18n="venue.f2.d">18:00 каждый вечер. Первый сет в 19:00.</dd></div>
+        <div><dt data-i18n="venue.f3.t">Последний сет</dt><dd data-i18n="venue.f3.d">03:00 в куполе, 04:00 в малом зале.</dd></div>
+        <div><dt data-i18n="venue.f4.t">Возраст</dt><dd data-i18n="venue.f4.d">18+ с документом на входе.</dd></div>
       </dl>
+    </div>
+  </section>
+
+  <section class="section passes" id="passes" aria-labelledby="passes-title">
+    <div class="wrap passes-grid">
+      <div class="desk-shell">
+        <div class="desk">
+          <div class="desk-head">
+            <p class="eyebrow" data-i18n="passes.eyebrow">Пассы</p>
+            <h2 class="h2" id="passes-title" data-i18n="passes.title">Выберите пасс. Он напечатается.</h2>
+            <p class="lede" data-i18n="passes.lede">Каждый пасс печатается на голографическом картоне. На входе оторвите корешок, это ваш чек-ин.</p>
+          </div>
+
+          <fieldset class="field">
+            <legend data-i18n="passes.pass">Пасс</legend>
+            <div class="tiers">
+              <label class="tier">
+                <input class="sr" type="radio" name="tier" id="tier-0" value="0" checked>
+                <span class="disc disc-pearl" aria-hidden="true"></span>
+                <span><span class="tier-name">Circuit</span><span class="tier-perks" data-i18n="tier0.p">Танцпол и все сеты в куполе</span></span>
+                <span class="tier-price" data-tier="0">₸48,500</span>
+              </label>
+              <label class="tier">
+                <input class="sr" type="radio" name="tier" id="tier-1" value="1">
+                <span class="disc disc-prism" aria-hidden="true"></span>
+                <span><span class="tier-name">Prism</span><span class="tier-perks" data-i18n="tier1.p">Место в звуковом кольце и быстрый вход</span></span>
+                <span class="tier-price" data-tier="1">₸76,000</span>
+              </label>
+              <label class="tier">
+                <input class="sr" type="radio" name="tier" id="tier-2" value="2">
+                <span class="disc disc-founders" aria-hidden="true"></span>
+                <span><span class="tier-name">Founders</span><span class="tier-perks" data-i18n="tier2.p">Балконная ложа, лаунж и встречи с артистами</span></span>
+                <span class="tier-price" data-tier="2">₸112,000</span>
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset class="field">
+            <legend data-i18n="passes.nights">Ночи</legend>
+            <div class="segmented">
+              <label><input class="sr" type="radio" name="access" id="acc-0" value="0" checked><span data-i18n="acc0">Все три</span></label>
+              <label><input class="sr" type="radio" name="access" id="acc-1" value="1"><span data-i18n="acc1">Пт 11</span></label>
+              <label><input class="sr" type="radio" name="access" id="acc-2" value="2"><span data-i18n="acc2">Сб 12</span></label>
+              <label><input class="sr" type="radio" name="access" id="acc-3" value="3"><span data-i18n="acc3">Вс 13</span></label>
+            </div>
+          </fieldset>
+
+          <div class="order">
+            <div class="qty">
+              <span class="qty-label" id="qty-label" data-i18n="passes.qty">Количество</span>
+              <div class="stepper" role="group" aria-labelledby="qty-label">
+                <button type="button" id="qty-minus" aria-label="Убрать один пасс" data-i18n-aria="aria.qtyMinus">−</button>
+                <output id="qty" aria-live="polite">1</output>
+                <button type="button" id="qty-plus" aria-label="Добавить один пасс" data-i18n-aria="aria.qtyPlus">+</button>
+              </div>
+            </div>
+            <div class="total"><span data-i18n="passes.total">Итого</span><strong id="total">₸48,500</strong></div>
+          </div>
+
+          <div class="desk-actions">
+            <button class="btn btn-primary magnetic" id="print-btn" type="button"><span id="print-label">Напечатать пасс</span><span class="btn-dot" aria-hidden="true">↗</span></button>
+            <button class="btn btn-ghost" id="flip-btn" type="button"><span id="flip-label">Оборот</span></button>
+          </div>
+
+          <div class="status" id="status" data-state="preview" aria-live="polite">
+            <p id="status-text">Это живое превью. Нажмите «Напечатать», и пасс выйдет из принтера.</p>
+            <button class="link-btn" id="tear-btn" type="button" hidden data-i18n="btn.tear">Оторвать корешок</button>
+          </div>
+          <p class="fine" data-i18n="passes.fine">Это концепт. Оплата не принимается, настоящие пассы не выпускаются.</p>
+        </div>
+      </div>
+      <div class="passes-visual">
+        <div class="orbits orbits-sm" aria-hidden="true"><i></i><i></i></div>
+        <div class="slot" id="slot-desk" role="img" aria-label="Живое превью пасса, который вы собираете." data-i18n-aria="aria.slotDesk"></div>
+        <p class="slot-hint" data-i18n="desk.hint">Живое превью вашего пасса</p>
+      </div>
     </div>
   </section>
 
   <section class="section faq" id="faq" aria-labelledby="faq-title">
     <div class="wrap faq-grid">
       <div class="faq-side">
-        <h2 class="h2" id="faq-title">Questions</h2>
-        <p>Anything else, ask at the info desk inside Gate 01.</p>
+        <h2 class="h2" id="faq-title" data-i18n="faq.title">Вопросы</h2>
       </div>
-      <div class="faq-list">
-        <details>
-          <summary>What does each pass include?</summary>
-          <p>Circuit covers the main floor and every set in the dome. Prism adds a reserved seat in the sound ring and a fast lane at the gate. Founders adds a balcony box, the lounge and the afternoon artist talks.</p>
-        </details>
-        <details>
-          <summary>Can I get a refund?</summary>
-          <p>You can refund a pass in full until November 27, 2026. After that you can transfer it to someone else once.</p>
-        </details>
-        <details>
-          <summary>Why do I tear the stub?</summary>
-          <p>The stub is your check-in. Staff tear it at Gate 01 and you keep the main pass. It shows your zone inside the dome.</p>
-        </details>
-        <details>
-          <summary>Is the venue accessible?</summary>
-          <p>The floor and the sound ring are step-free, and there is a quiet room next to Gate 02.</p>
-        </details>
-        <details>
-          <summary>Is there an age limit?</summary>
-          <p>Yes, the festival is 18+. Bring a photo ID.</p>
-        </details>
-        <details>
-          <summary>Is Aurora Circuit a real festival?</summary>
-          <p>No. This page is a design concept. The lineup is fictional, no passes are sold and no payment is taken.</p>
-        </details>
+      <div class="qa-list">
+        <article class="qa"><h3 data-i18n="faq.q1">Что входит в каждый пасс?</h3><p data-i18n="faq.a1">Circuit даёт доступ на танцпол и ко всем сетам в куполе. Prism добавляет место в звуковом кольце и быстрый вход. Founders добавляет балконную ложу, лаунж и дневные встречи с артистами.</p></article>
+        <article class="qa"><h3 data-i18n="faq.q2">Можно вернуть пасс?</h3><p data-i18n="faq.a2">Полный возврат возможен до 27 ноября 2026 года. После этого пасс можно один раз передать другому человеку.</p></article>
+        <article class="qa"><h3 data-i18n="faq.q3">Зачем отрывать корешок?</h3><p data-i18n="faq.a3">Корешок это ваш чек-ин. Его отрывают на входе Gate 01, а основной пасс остаётся у вас: на нём указана ваша зона в куполе.</p></article>
+        <article class="qa"><h3 data-i18n="faq.q4">Площадка доступна для маломобильных гостей?</h3><p data-i18n="faq.a4">Танцпол и звуковое кольцо без ступенек, а рядом с Gate 02 есть тихая комната.</p></article>
+        <article class="qa"><h3 data-i18n="faq.q5">Есть ли возрастное ограничение?</h3><p data-i18n="faq.a5">Да, фестиваль 18+. Возьмите с собой документ с фото.</p></article>
+        <article class="qa"><h3 data-i18n="faq.q6">Это настоящий фестиваль?</h3><p data-i18n="faq.a6">Нет. Эта страница дизайн-концепт. Лайнап вымышлен, пассы не продаются, оплата не принимается.</p></article>
       </div>
     </div>
   </section>
 
   <section class="finale" aria-labelledby="finale-title">
     <div class="wrap finale-inner">
-      <h2 class="finale-title reveal" id="finale-title">December 11-13.<br>Almaty.</h2>
-      <a class="btn btn-primary btn-lg" href="#passes">Get passes <span class="btn-dot" aria-hidden="true">↗</span></a>
+      <h2 class="finale-title" id="finale-title"><span class="fl" data-i18n="finale.l1">11-13 декабря.</span><span class="fl o" data-i18n="finale.l2">Алматы.</span></h2>
+      <a class="btn btn-primary btn-lg magnetic" href="#passes"><span data-i18n="cta.buy">Купить пасс</span><span class="btn-dot" aria-hidden="true">↗</span></a>
     </div>
   </section>
 </main>
@@ -261,14 +323,18 @@
 <footer class="footer">
   <div class="wrap footer-inner">
     <a class="brand" href="#top"><span class="mark" aria-hidden="true"></span><span>Aurora Circuit</span></a>
-    <nav class="footer-links" aria-label="Footer">
-      <a href="#lineup">Lineup</a>
-      <a href="#passes">Passes</a>
-      <a href="#faq">FAQ</a>
+    <nav class="footer-links" aria-label="Подвал">
+      <a href="#lineup" data-i18n="nav.lineup">Лайнап</a>
+      <a href="#passes" data-i18n="nav.passes">Пассы</a>
+      <a href="#faq" data-i18n="nav.faq">Вопросы</a>
     </nav>
-    <p class="fine">Aurora Circuit is a design concept by Atelier Orbita. The festival and its lineup are fictional.</p>
+    <p class="fine" data-i18n="footer.fine">Aurora Circuit это дизайн-концепт студии Atelier Orbita. Фестиваль и лайнап вымышлены.</p>
   </div>
 </footer>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" integrity="sha384-g4NTh/Iv5PPU4xPyhEWqPcwtNXOvdaDI8LLnyYfyNZOjKJeYQyjzQ9X5275eBjpt" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" integrity="sha384-Z3REaz79l2IaAZqJsSABtTbhjgOUYyV3p90XNnAPCSHg3EMTz1fouunq9WZRtj3d" crossorigin="anonymous"></script>
 <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }</script>
 <script type="module" src="site.js"></script>
+</body>
+</html>

@@ -226,7 +226,9 @@ export function createTicketStage({ canvas, slots, onPhase = () => {}, onFibers 
   let lastBreakPan = 0;
   sim.onBreak = (c, mid, strain) => {
     const pan = ((c / (FIBERS - 1)) * 2 - 1) * 0.8;
-    audio.fiber(Math.min(1.5, Math.max(0.3, strain - 1)), pan, breakDelay);
+    // when fibres go fast the rip bed carries the sound, so single snaps step back
+    const busy = breakTimes.length > 5 ? 0.55 : 1;
+    audio.fiber(Math.min(1.5, Math.max(0.3, strain - 1)) * busy, pan, breakDelay);
     breakDelay += 0.011;
     breakTimes.push(performance.now());
     lastBreakPan = pan;
@@ -327,8 +329,14 @@ export function createTicketStage({ canvas, slots, onPhase = () => {}, onFibers 
     }
   });
 
+  // Motion sounds (crinkle, air, fibre stress) only play while the viewer is handling the pass and
+  // shortly after; page scroll, idle sway and docking never make noise.
+  let engagedUntil = 0;
+  const engage = (ms) => { engagedUntil = Math.max(engagedUntil, performance.now() + ms); };
+
   function endDrag() {
     if (!drag) return;
+    engage(1200);
     if (drag.mode !== 'slice') { sim.release(); sim.hold = null; state.releaseRamp = 0; }
     root.classList.remove('ticket-drag');
     drag = null;
@@ -466,11 +474,13 @@ export function createTicketStage({ canvas, slots, onPhase = () => {}, onFibers 
     state.entrance = Math.max(0, state.entrance - dt * 0.9);
 
     updateStubFade(t);
-    audio.crinkle(Math.max(0, sim.deformationSpeed(SUB) - 0.04) * 0.9, dt);
+    const engaged = !!drag || !!state.tear || (sim.stubDetached && !sim.stubFrozen) || now < engagedUntil;
+    const speed = motionSpeed(dt);
+    audio.crinkle(engaged ? Math.max(0, sim.deformationSpeed(SUB) - 0.04) * 0.9 : 0, dt);
     while (breakTimes.length && now - breakTimes[0] > 150) breakTimes.shift();
     audio.tearRate(breakTimes.length / 0.15, lastBreakPan);
-    audio.air(motionSpeed(dt));
-    if (!sim.stubDetached && sim.maxStrain > 1.2 && t > stressAt && Math.random() < (sim.maxStrain - 1.2) * 1.5) {
+    audio.air(engaged ? speed : 0);
+    if (engaged && !sim.stubDetached && sim.maxStrain > 1.2 && t > stressAt && Math.random() < (sim.maxStrain - 1.2) * 1.5) {
       audio.stress(sim.maxStrain - 1.2, (Math.random() - 0.5) * 0.6);
       stressAt = t + 0.03;
     }
@@ -507,7 +517,7 @@ export function createTicketStage({ canvas, slots, onPhase = () => {}, onFibers 
     textures.front.needsUpdate = textures.back.needsUpdate = textures.mask.needsUpdate = true;
     uniforms.uFoilMode.value = TIERS[tier].foilMode;
     audio.setStock(TIERS[tier].stock);
-    if (changed && state.ready) { audio.click(); kick(2.6); }
+    if (changed && state.ready) { audio.click(); kick(2.6); engage(900); }
   }
 
   function print() {
@@ -526,6 +536,7 @@ export function createTicketStage({ canvas, slots, onPhase = () => {}, onFibers 
     breakTimes.length = 0;
     onFibers(FIBERS);
     setPhase('printed');
+    engage(2000);
     audio.issue();
   }
 
@@ -539,11 +550,13 @@ export function createTicketStage({ canvas, slots, onPhase = () => {}, onFibers 
     sim.hold = { quat: sim.clusters[0].rot.clone(), c: sim.clusters[0].c.clone() };
     const dir = new THREE.Vector3(left ? -0.1 : 0.1, -0.52, 0.42).applyQuaternion(sim.clusters[0].rot);
     state.tear = { t: 0, p0, dir, left, forced: 0, after: 0 };
+    engage(2600);
   }
 
   function flip() {
     state.yawTarget += Math.PI;
     state.releaseRamp = 1;
+    engage(1600);
     audio.flap(0.9);
     return Math.abs(Math.round(state.yawTarget / Math.PI)) % 2 === 1;
   }

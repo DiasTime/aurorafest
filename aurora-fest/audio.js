@@ -32,9 +32,11 @@ function crackleBuffer(ctx, seconds, density, maxLen, skew) {
   const buf = ctx.createBuffer(1, len, ctx.sampleRate);
   const d = buf.getChannelData(0);
   const events = Math.floor(density * seconds);
+  const strong = [];
   for (let e = 0; e < events; e++) {
     const start = Math.floor(Math.random() * len);
     const amp = Math.pow(Math.random(), skew) * (Math.random() < 0.5 ? -1 : 1);
+    if (Math.abs(amp) > 0.32 && start < len - ctx.sampleRate * 0.06) strong.push(start / ctx.sampleRate);
     const L = 6 + Math.floor(Math.random() * Math.random() * maxLen);
     const k = 5 / L;
     for (let i = 0; i < L && start + i < len; i++) d[start + i] += amp * (Math.random() * 2 - 1) * Math.exp(-i * k);
@@ -42,6 +44,7 @@ function crackleBuffer(ctx, seconds, density, maxLen, skew) {
   let prev = 0;
   for (let i = 0; i < len; i++) { const x = d[i]; d[i] = x - prev * 0.55; prev = x; } // trim rumble
   normalize(d, 0.95);
+  buf.cracks = Float32Array.from(strong); // offsets where a clear crack begins, so grains never start in silence
   return buf;
 }
 
@@ -93,25 +96,30 @@ export class TicketAudio {
     this.offline = typeof OfflineAudioContext !== 'undefined' && ctx instanceof OfflineAudioContext;
 
     this.master = ctx.createGain();
-    this.master.gain.value = this.enabled ? 1 : 0;
+    this.master.gain.value = this.enabled ? 0.85 : 0;
     const glue = ctx.createDynamicsCompressor();
-    glue.threshold.value = -20; glue.knee.value = 12; glue.ratio.value = 3; glue.attack.value = 0.004; glue.release.value = 0.18;
+    glue.threshold.value = -18; glue.knee.value = 10; glue.ratio.value = 2.5; glue.attack.value = 0.003; glue.release.value = 0.15;
     const limiter = ctx.createDynamicsCompressor();
-    limiter.threshold.value = -2; limiter.knee.value = 0; limiter.ratio.value = 20; limiter.attack.value = 0.001; limiter.release.value = 0.08;
+    limiter.threshold.value = -3; limiter.knee.value = 0; limiter.ratio.value = 20; limiter.attack.value = 0.001; limiter.release.value = 0.06;
     this.master.connect(glue).connect(limiter).connect(ctx.destination);
 
+    // Paper sounds stay close and nearly dry; only tonal sounds (the chime, the printer) get the hall.
+    const room = ctx.createConvolver();
+    room.buffer = impulseResponse(ctx, 0.45, 3.4);
+    const hall = ctx.createConvolver();
+    hall.buffer = impulseResponse(ctx, 2.2, 2.4);
+    room.connect(this.master);
+    hall.connect(this.master);
     this.bus = ctx.createGain();
     this.bus.connect(this.master);
     this.sendRoom = ctx.createGain();
-    this.sendHall = ctx.createGain();
-    this.bus.connect(this.sendRoom);
-    this.bus.connect(this.sendHall);
-    const room = ctx.createConvolver();
-    room.buffer = impulseResponse(ctx, 0.5, 3.2);
-    const hall = ctx.createConvolver();
-    hall.buffer = impulseResponse(ctx, 2.8, 2.1);
-    this.sendRoom.connect(room).connect(this.master);
-    this.sendHall.connect(hall).connect(this.master);
+    this.bus.connect(this.sendRoom).connect(room);
+    this.fx = ctx.createGain();
+    this.fx.connect(this.master);
+    this.fxRoom = ctx.createGain();
+    this.fxHall = ctx.createGain();
+    this.fx.connect(this.fxRoom).connect(room);
+    this.fx.connect(this.fxHall).connect(hall);
     this._applyHall(0.01);
 
     this.noise = noiseBuffer(ctx, 2);
@@ -149,8 +157,9 @@ export class TicketAudio {
 
   _applyHall(tc) {
     const t = this.ctx.currentTime;
-    this.sendRoom.gain.setTargetAtTime(this.hall ? 0.05 : 0.16, t, tc);
-    this.sendHall.gain.setTargetAtTime(this.hall ? 0.34 : 0, t, tc);
+    this.sendRoom.gain.setTargetAtTime(this.hall ? 0.09 : 0.07, t, tc);
+    this.fxRoom.gain.setTargetAtTime(this.hall ? 0.05 : 0.16, t, tc);
+    this.fxHall.gain.setTargetAtTime(this.hall ? 0.3 : 0.06, t, tc);
   }
 
   setHall(on) { this.hall = on; if (this.ctx) this._applyHall(0.4); }
@@ -159,7 +168,7 @@ export class TicketAudio {
   setEnabled(on) {
     this.enabled = on;
     if (!this.ctx) return;
-    this.master.gain.setTargetAtTime(on ? 1 : 0, this.ctx.currentTime, 0.04);
+    this.master.gain.setTargetAtTime(on ? 0.85 : 0, this.ctx.currentTime, 0.04);
     if (!on) this.silence();
   }
 
@@ -188,8 +197,9 @@ export class TicketAudio {
       p.pan.value = Math.max(-1, Math.min(1, o.pan));
       node = node.connect(p);
     }
-    node.connect(this.bus);
-    const offset = Math.random() * Math.max(0, buf.duration - o.dur * rate - 0.05);
+    node.connect(o.dest || this.bus);
+    let offset = Math.random() * Math.max(0, buf.duration - o.dur * rate - 0.05);
+    if (buf.cracks && buf.cracks.length) offset = Math.max(0, buf.cracks[(Math.random() * buf.cracks.length) | 0] - 0.0006);
     src.start(t, offset, o.dur * rate + 0.02);
   }
 
@@ -219,7 +229,7 @@ export class TicketAudio {
       p.pan.value = o.pan;
       node = node.connect(p);
     }
-    node.connect(this.bus);
+    node.connect(o.dest || this.fx);
     osc.start(t);
     osc.stop(t + o.dur + 0.05);
   }
@@ -269,16 +279,16 @@ export class TicketAudio {
     if (!this.ctx) return;
     const a = clamp01(amount);
     const t = this.ctx.currentTime;
-    this.beds.swish.g.gain.setTargetAtTime(this.enabled ? a * a * 0.1 : 0, t, 0.06);
-    this.beds.swish.f.frequency.setTargetAtTime((1500 + a * 2500) * this.tone, t, 0.08);
-    if (!this.ready || a < 0.03) { this.crinkleCarry = 0; return; }
-    this.crinkleCarry += Math.min(90, a * 110) * dt;
+    this.beds.swish.g.gain.setTargetAtTime(this.enabled ? a * a * 0.035 : 0, t, 0.08);
+    this.beds.swish.f.frequency.setTargetAtTime((1200 + a * 1800) * this.tone, t, 0.1);
+    if (!this.ready || a < 0.06) { this.crinkleCarry = 0; return; }
+    this.crinkleCarry += Math.min(55, a * 70) * dt;
     while (this.crinkleCarry >= 1) {
       this.crinkleCarry -= 1;
-      if (Math.random() < 0.3) continue;
+      if (Math.random() < 0.35) continue;
       this._grain(this.crackle, {
-        t: t + Math.random() * dt, dur: rand(0.004, 0.018), freq: rand(2000, 6500), q: rand(0.8, 2),
-        gain: rand(0.04, 0.14) * (0.4 + a), pan: rand(-0.5, 0.5), rate: rand(0.85, 1.2),
+        t: t + Math.random() * dt, dur: rand(0.006, 0.02), freq: rand(1800, 5200), q: rand(0.8, 1.6),
+        gain: rand(0.05, 0.11) * (0.5 + a), pan: rand(-0.45, 0.45), rate: rand(0.9, 1.15),
       });
     }
   }
@@ -286,10 +296,10 @@ export class TicketAudio {
   // Air moved by the ticket: driven by its real linear and angular speed.
   air(speed) {
     if (!this.ctx) return;
-    const a = clamp01((speed - 0.5) / 6);
+    const a = clamp01((speed - 0.9) / 6);
     const t = this.ctx.currentTime, b = this.beds.air;
-    b.g.gain.setTargetAtTime(this.enabled ? a * a * 0.42 : 0, t, 0.05);
-    b.f.frequency.setTargetAtTime(280 + a * 1500, t, 0.06);
+    b.g.gain.setTargetAtTime(this.enabled ? a * a * 0.3 : 0, t, a > 0 ? 0.05 : 0.12);
+    b.f.frequency.setTargetAtTime(260 + a * 1300, t, 0.08);
   }
 
   // The soft thwap of a card being flicked over.
@@ -332,22 +342,22 @@ export class TicketAudio {
     osc.frequency.linearRampToValueAtTime(118, t + run);
     const lp = ctx.createBiquadFilter();
     lp.type = 'lowpass';
-    lp.frequency.value = 520;
-    lp.Q.value = 4;
+    lp.frequency.value = 700;
+    lp.Q.value = 1.2;
     const chop = ctx.createGain();
-    chop.gain.value = 0.6;
+    chop.gain.value = 0.7;
     const lfo = ctx.createOscillator();
-    lfo.type = 'square';
-    lfo.frequency.value = 31;
+    lfo.type = 'sine';
+    lfo.frequency.value = 28;
     const depth = ctx.createGain();
-    depth.gain.value = 0.4;
+    depth.gain.value = 0.3;
     lfo.connect(depth).connect(chop.gain);
     const g = ctx.createGain();
     g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(0.05, t + 0.03);
-    g.gain.setValueAtTime(0.05, t + run - 0.05);
+    g.gain.linearRampToValueAtTime(0.035, t + 0.04);
+    g.gain.setValueAtTime(0.035, t + run - 0.06);
     g.gain.linearRampToValueAtTime(0, t + run);
-    osc.connect(lp).connect(chop).connect(g).connect(this.bus);
+    osc.connect(lp).connect(chop).connect(g).connect(this.fx);
     osc.start(t); lfo.start(t);
     osc.stop(t + run + 0.05); lfo.stop(t + run + 0.05);
 
@@ -365,7 +375,7 @@ export class TicketAudio {
     slide.connect(sf).connect(sg).connect(this.bus);
     slide.start(t, Math.random(), run + 0.05);
 
-    for (let i = 0; i < 16; i++) this._grain(this.crackle, { t: t + i * 0.036, dur: 0.008, freq: 1800 + (i % 2) * 500, q: 3, gain: 0.06 });
+    for (let i = 0; i < 16; i++) this._grain(this.crackle, { t: t + i * 0.036, dur: 0.008, freq: 1800 + (i % 2) * 500, q: 2, gain: 0.04 });
     this._grain(this.noise, { t: t + run, dur: 0.005, freq: 3500, type: 'highpass', gain: 0.2 });
     this._grain(this.noise, { t: t + run, dur: 0.03, freq: 650, type: 'lowpass', gain: 0.14 });
   }
